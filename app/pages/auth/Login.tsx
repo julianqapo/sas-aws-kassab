@@ -4,10 +4,13 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card";
-import { Lock, Mail } from "lucide-react";
+import { Lock, Mail, Shield, Users } from "lucide-react";
+
+type UserType = "admin" | "staff";
 
 export function Login() {
   const navigate = useNavigate();
+  const [userType, setUserType] = useState<UserType>("admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -23,9 +26,40 @@ export function Login() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
           <CardDescription className="text-center">
-            Enter your credentials to access your account
+            Select your role and enter your credentials
           </CardDescription>
         </CardHeader>
+        
+        {/* User Type Switcher */}
+        <div className="px-6 pb-2">
+          <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setUserType("admin")}
+              className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-md transition-all ${
+                userType === "admin"
+                  ? "bg-orange-600 text-white shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+              }`}
+            >
+              <Shield className="w-4 h-4" />
+              <span className="font-medium">Admin</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setUserType("staff")}
+              className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-md transition-all ${
+                userType === "staff"
+                  ? "bg-orange-600 text-white shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span className="font-medium">Staff</span>
+            </button>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -35,7 +69,7 @@ export function Login() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={userType === "admin" ? "admin@example.com" : "staff@example.com"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -69,7 +103,7 @@ export function Login() {
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600">
-              Sign In
+              Sign In as {userType === "admin" ? "Admin" : "Staff"}
             </Button>
             <p className="text-sm text-center text-gray-600 dark:text-gray-400">
               Don't have an account?{" "}
