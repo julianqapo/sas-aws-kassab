@@ -1,28 +1,56 @@
-import { useState } from "react";
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { DeleteModal } from "../components/modals/DeleteModal";
-import { AddModal } from "../components/modals/AddModal";
-import { ConfirmModal } from "../components/modals/ConfirmModal";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import { supabase } from "../../lib/supabase";
+import { Button } from "../../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
+import { DeleteModal } from "../../components/modals/DeleteModal";
+import { AddModal } from "../../components/modals/AddModal";
+import { ConfirmModal } from "../../components/modals/ConfirmModal";
 import { Plus, Trash2, CheckCircle } from "lucide-react";
-import { toast } from "sonner";
-import { Toaster } from "../components/ui/sonner";
 
+interface Item {
+  id: number;
+  name: string;
+  description: string;
+}
 
-export function Dashboard() {
+export default function DashboardPage() {
+  const { user } = useAuth();
+  const [staffCount, setStaffCount] = useState(0);
   const [items, setItems] = useState<Item[]>([
     { id: 1, name: "Sample Item 1", description: "This is a sample item" },
     { id: 2, name: "Sample Item 2", description: "Another sample item" },
     { id: 3, name: "Sample Item 3", description: "Yet another sample item" },
   ]);
-  const [deleteModal, setDeleteModal] = useState<{ open: boolean; item?: Item }>({ open: false });
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    item?: Item;
+  }>({ open: false });
   const [addModal, setAddModal] = useState(false);
   const [confirmModal, setConfirmModal] = useState(false);
+
+  useEffect(() => {
+    async function fetchStats() {
+      const { count } = await supabase
+        .from("staff")
+        .select("*", { count: "exact", head: true })
+        .eq("is_active", true);
+      setStaffCount(count ?? 0);
+    }
+    fetchStats();
+  }, []);
 
   const handleDelete = () => {
     if (deleteModal.item) {
       setItems(items.filter((item) => item.id !== deleteModal.item?.id));
-      toast.success(`"${deleteModal.item.name}" has been deleted`);
     }
     setDeleteModal({ open: false });
   };
@@ -34,27 +62,27 @@ export function Dashboard() {
       description: data.description,
     };
     setItems([...items, newItem]);
-    toast.success(`"${data.name}" has been added`);
   };
 
   const handleConfirmAction = () => {
-    toast.success("Action confirmed successfully!");
     setConfirmModal(false);
   };
 
   return (
     <div className="p-8">
-      <Toaster />
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold dark:text-white">Dashboard</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Manage your items and explore the application
+              Welcome back, {user?.email}
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => setAddModal(true)} className="bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600">
+            <Button
+              onClick={() => setAddModal(true)}
+              className="bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Item
             </Button>
@@ -73,16 +101,18 @@ export function Dashboard() {
               <CardDescription>Number of items in the system</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold dark:text-white">{items.length}</p>
+              <p className="text-3xl font-bold dark:text-white">
+                {items.length}
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Active Users</CardTitle>
-              <CardDescription>Currently online</CardDescription>
+              <CardTitle>Active Staff</CardTitle>
+              <CardDescription>Currently active staff members</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold dark:text-white">24</p>
+              <p className="text-3xl font-bold dark:text-white">{staffCount}</p>
             </CardContent>
           </Card>
           <Card>
@@ -100,9 +130,7 @@ export function Dashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Your Items</CardTitle>
-            <CardDescription>
-              Manage and organize your items
-            </CardDescription>
+            <CardDescription>Manage and organize your items</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -112,8 +140,12 @@ export function Dashboard() {
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors dark:border-gray-700"
                 >
                   <div>
-                    <h3 className="font-semibold dark:text-white">{item.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
+                    <h3 className="font-semibold dark:text-white">
+                      {item.name}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {item.description}
+                    </p>
                   </div>
                   <Button
                     variant="ghost"
@@ -127,7 +159,7 @@ export function Dashboard() {
               ))}
               {items.length === 0 && (
                 <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                  No items yet. Click "Add Item" to create one.
+                  No items yet. Click &quot;Add Item&quot; to create one.
                 </div>
               )}
             </div>
