@@ -1,5 +1,8 @@
+"use client";
+
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
   Home,
@@ -13,10 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useTheme } from "../contexts/ThemeContext";
-
-interface SidebarProps {
-  onLogout?: () => void;
-}
+import { useAuth } from "../contexts/AuthContext";
 
 const menuItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
@@ -26,17 +26,16 @@ const menuItems = [
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
-export function Sidebar({ onLogout }: SidebarProps) {
+export function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
+  const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const { signOut } = useAuth();
 
-  const handleLogout = () => {
-    if (onLogout) {
-      onLogout();
-    }
-    navigate("/login");
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/login");
   };
 
   return (
@@ -77,11 +76,11 @@ export function Sidebar({ onLogout }: SidebarProps) {
         <ul className="space-y-1 px-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive = pathname === item.path;
 
             return (
               <li key={item.path}>
-                <Link to={item.path}>
+                <Link href={item.path}>
                   <motion.div
                     className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
                       isActive
