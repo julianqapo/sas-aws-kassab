@@ -1,5 +1,8 @@
+"use client";
+
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import {
   Home,
@@ -28,15 +31,13 @@ const menuItems = [
 
 export function Sidebar({ onLogout }: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
+  const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     if (onLogout) {
       onLogout();
     }
-    navigate("/login");
   };
 
   return (
@@ -77,11 +78,11 @@ export function Sidebar({ onLogout }: SidebarProps) {
         <ul className="space-y-1 px-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive = pathname === item.path;
 
             return (
               <li key={item.path}>
-                <Link to={item.path}>
+                <Link href={item.path}>
                   <motion.div
                     className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
                       isActive
