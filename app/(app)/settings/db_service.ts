@@ -14,11 +14,9 @@ export async function getCredential() {
     return null;
   }
 
-  const { data, error } = await supabase
-    .from("credential")
-    .select("username, password")
-    .eq("id_admin", user.id)
-    .single();
+  const { data, error } = await supabase.rpc("read_credential")
+//   const res = await supabase.functions.invoke("admin-login")
+//   console.log(res)
 
   if (error || !data) {
     return null;

@@ -30,6 +30,7 @@ export default function SettingsPage() {
     async function loadCredential() {
       try {
         const credential = await getCredential();
+
         if (credential) {
           setUsername(credential.username);
           setPassword(credential.password);
