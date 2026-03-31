@@ -1,25 +1,62 @@
-import { useState } from "react";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "./contexts/AuthContext";
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import { Label } from "./components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "./components/ui/card";
 import { Lock, Mail, Shield, Users } from "lucide-react";
 import Link from "next/link";
-import React from "react";
-
 
 type UserType = "admin" | "staff";
 
-export function Login() {
+export default function HomePage() {
+  const router = useRouter();
+  const { user, loading, signIn } = useAuth();
   const [userType, setUserType] = useState<UserType>("admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!loading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600" />
+      </div>
+    );
+  }
+
+  if (user) {
+    return null;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login - redirect to dashboard
-    navigate("/dashboard");
-    
+    setError("");
+    setSubmitting(true);
+    const { error: signInError } = await signIn(email, password);
+    if (signInError) {
+      setError(signInError);
+      setSubmitting(false);
+    } else {
+      router.push("/dashboard");
+    }
   };
 
   return (
@@ -31,7 +68,7 @@ export function Login() {
             Select your role and enter your credentials
           </CardDescription>
         </CardHeader>
-        
+
         {/* User Type Switcher */}
         <div className="px-6 pb-2">
           <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
@@ -64,6 +101,11 @@ export function Login() {
 
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md">
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -71,7 +113,11 @@ export function Login() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder={userType === "admin" ? "admin@example.com" : "staff@example.com"}
+                  placeholder={
+                    userType === "admin"
+                      ? "admin@example.com"
+                      : "staff@example.com"
+                  }
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -96,7 +142,7 @@ export function Login() {
             </div>
             <div className="text-right">
               <Link
-                to="/forgot-password"
+                href="/forgot-password"
                 className="text-sm text-orange-600 dark:text-orange-500 hover:underline"
               >
                 Forgot password?
@@ -104,12 +150,21 @@ export function Login() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600">
-              Sign In as {userType === "admin" ? "Admin" : "Staff"}
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
+            >
+              {submitting
+                ? "Signing in..."
+                : `Sign In as ${userType === "admin" ? "Admin" : "Staff"}`}
             </Button>
             <p className="text-sm text-center text-gray-600 dark:text-gray-400">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-orange-600 dark:text-orange-500 hover:underline">
+              Don&apos;t have an account?{" "}
+              <Link
+                href="/register"
+                className="text-orange-600 dark:text-orange-500 hover:underline"
+              >
                 Sign up
               </Link>
             </p>

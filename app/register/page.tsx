@@ -1,30 +1,51 @@
+"use client";
+
 import { useState } from "react";
-import { useNavigate, Link } from "react-router";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../contexts/AuthContext";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 import { Lock, Mail, User, Shield, Users, Building } from "lucide-react";
+import Link from "next/link";
 
 type UserType = "admin" | "staff";
 
-export function Register() {
-  const navigate = useNavigate();
+export default function RegisterPage() {
+  const router = useRouter();
+  const { signUp } = useAuth();
   const [userType, setUserType] = useState<UserType>("admin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [department, setDepartment] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      setError("Passwords do not match!");
       return;
     }
-    // Mock registration - redirect to dashboard
-    navigate("/dashboard");
+    setSubmitting(true);
+    const { error: signUpError } = await signUp(email, password);
+    if (signUpError) {
+      setError(signUpError);
+      setSubmitting(false);
+    } else {
+      router.push("/dashboard");
+    }
   };
 
   return (
@@ -36,7 +57,7 @@ export function Register() {
             Select your role and enter your information
           </CardDescription>
         </CardHeader>
-        
+
         {/* User Type Switcher */}
         <div className="px-6 pb-2">
           <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
@@ -69,6 +90,11 @@ export function Register() {
 
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md">
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <div className="relative">
@@ -91,7 +117,11 @@ export function Register() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder={userType === "admin" ? "admin@example.com" : "staff@example.com"}
+                  placeholder={
+                    userType === "admin"
+                      ? "admin@example.com"
+                      : "staff@example.com"
+                  }
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -99,8 +129,7 @@ export function Register() {
                 />
               </div>
             </div>
-            
-            {/* Staff-specific field */}
+
             {userType === "staff" && (
               <div className="space-y-2">
                 <Label htmlFor="department">Department</Label>
@@ -118,7 +147,7 @@ export function Register() {
                 </div>
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
@@ -151,12 +180,21 @@ export function Register() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600">
-              Create {userType === "admin" ? "Admin" : "Staff"} Account
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
+            >
+              {submitting
+                ? "Creating account..."
+                : `Create ${userType === "admin" ? "Admin" : "Staff"} Account`}
             </Button>
             <p className="text-sm text-center text-gray-600 dark:text-gray-400">
               Already have an account?{" "}
-              <Link to="/login" className="text-orange-600 dark:text-orange-500 hover:underline">
+              <Link
+                href="/"
+                className="text-orange-600 dark:text-orange-500 hover:underline"
+              >
                 Sign in
               </Link>
             </p>
