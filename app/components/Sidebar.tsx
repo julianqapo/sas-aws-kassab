@@ -14,6 +14,7 @@ import {
   Moon,
   Sun,
   Wifi,
+  UserCog,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useTheme } from "../contexts/ThemeContext";
@@ -23,6 +24,7 @@ const menuItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
   { icon: BarChart, label: "Analytics", path: "/analytics" },
   { icon: Users, label: "Users", path: "/users" },
+  { icon: UserCog, label: "Staff", path: "/staff" },
   { icon: Wifi, label: "Online", path: "/online" },
   { icon: FileText, label: "Documents", path: "/documents" },
   { icon: Settings, label: "Settings", path: "/settings" },
