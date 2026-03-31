@@ -26,6 +26,13 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/esm/server/web/exports/index.js [middleware-edge] (ecmascript)");
 ;
 ;
+const AUTH_ROUTES = [
+    "/",
+    "/register",
+    "/forgot-password"
+];
+const DEFAULT_AUTHENTICATED_ROUTE = "/dashboard";
+const LOGIN_ROUTE = "/";
 async function middleware(request) {
     let supabaseResponse = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].next({
         request
@@ -38,30 +45,33 @@ async function middleware(request) {
                 return request.cookies.getAll();
             },
             setAll (cookiesToSet) {
-                // Set cookies on the request (for downstream server components)
                 cookiesToSet.forEach(({ name, value })=>request.cookies.set(name, value));
-                // Recreate the response so it carries the updated request cookies
                 supabaseResponse = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].next({
                     request
                 });
-                // Set cookies on the response (for the browser)
                 cookiesToSet.forEach(({ name, value, options })=>supabaseResponse.cookies.set(name, value, options));
             }
         }
     });
-    // Refresh the session — this keeps auth cookies alive and in sync
-    await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
+    const pathname = request.nextUrl.pathname;
+    // If user is NOT authenticated and trying to access a protected route
+    if (!user && !AUTH_ROUTES.includes(pathname)) {
+        const url = request.nextUrl.clone();
+        url.pathname = LOGIN_ROUTE;
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].redirect(url);
+    }
+    // If user IS authenticated and trying to access auth routes (login, register, forgot-password)
+    if (user && AUTH_ROUTES.includes(pathname)) {
+        const url = request.nextUrl.clone();
+        url.pathname = DEFAULT_AUTHENTICATED_ROUTE;
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].redirect(url);
+    }
     return supabaseResponse;
 }
 const config = {
     matcher: [
-        /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (images, etc.)
-     */ "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
+        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
     ]
 };
 }),
