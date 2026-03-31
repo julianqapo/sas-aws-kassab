@@ -27,13 +27,4 @@ export function createServerSupabaseClient() {
   });
 }
 
-export async function isAdmin(supabase: ReturnType<typeof createServerSupabaseClient>) {
-  const { data, error } = await supabase.rpc("login_admin");
 
-  if (error) {
-    console.error("RPC Error (login_admin):", error.message);
-    return false;
-  }
-
-  return Boolean(data);
-}

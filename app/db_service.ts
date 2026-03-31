@@ -1,6 +1,6 @@
 "use server";
 
-import { createServerSupabaseClient, isAdmin } from "./lib/supabase-server";
+import { createServerSupabaseClient } from "./lib/supabase-server";
 
 export async function getSessionUser() {
   const supabase = createServerSupabaseClient();
@@ -19,6 +19,17 @@ export async function getSessionUser() {
 export async function logoutAction() {
   const supabase = createServerSupabaseClient();
   await supabase.auth.signOut();
+}
+
+export async function isAdmin(supabase: ReturnType<typeof createServerSupabaseClient>) {
+  const { data, error } = await supabase.rpc("login_admin");
+
+  if (error) {
+    console.error("RPC Error (login_admin):", error.message);
+    return false;
+  }
+
+  return Boolean(data);
 }
 
 // --- SIGN IN ACTION (Admin) ---

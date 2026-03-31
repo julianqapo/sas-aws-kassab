@@ -14,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { Lock, Mail, User, Shield, Users, Building } from "lucide-react";
+import { Lock, Mail, Shield, Users, Building } from "lucide-react";
 import Link from "next/link";
 
 type UserType = "admin" | "staff";
@@ -22,34 +22,50 @@ type UserType = "admin" | "staff";
 export default function RegisterPage() {
   const router = useRouter();
   const [userType, setUserType] = useState<UserType>("admin");
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [department, setDepartment] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
+    
     if (password !== confirmPassword) {
-      setError("Passwords do not match!");
+      setError(userType === "admin" ? "Passwords do not match!" : "كلمات المرور غير متطابقة!");
       return;
     }
+    
     setSubmitting(true);
 
     const formData = new FormData();
     formData.set("email", email);
     formData.set("password", password);
+    if (userType === "staff") {
+      formData.set("department", department);
+    }
 
-    const action = userType === "admin" ? handleSignUpAction : handleStaffSignUpAction;
-    const result = await action(null, formData);
+    try {
+      const action = userType === "admin" ? handleSignUpAction : handleStaffSignUpAction;
+      const result = await action(null, formData);
 
-    if (result?.ok && result?.redirectTo) {
-      router.push(result.redirectTo);
-    } else if (result?.message) {
-      setError(result.message);
+      if (result?.ok && result?.redirectTo) {
+        router.refresh();
+        router.push(result.redirectTo);
+      } else if (result && !result.ok) {
+        setError(result.message);
+        setSubmitting(false);
+      } else if (result?.ok) {
+        setSuccess(result.message);
+        setSubmitting(false);
+      }
+    } catch (err) {
+      // Unexpected network errors
+      setError(userType === "admin" ? "A connection error occurred." : "حدث خطأ في الاتصال.");
       setSubmitting(false);
     }
   };
@@ -64,7 +80,6 @@ export default function RegisterPage() {
           </CardDescription>
         </CardHeader>
 
-        {/* User Type Switcher */}
         <div className="px-6 pb-2">
           <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
             <button
@@ -101,33 +116,19 @@ export default function RegisterPage() {
                 {error}
               </div>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400 dark:text-gray-500" />
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="pl-10"
-                  required
-                />
+            {success && (
+              <div className="p-3 text-sm text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400 rounded-md">
+                {success}
               </div>
-            </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder={
-                    userType === "admin"
-                      ? "admin@example.com"
-                      : "staff@example.com"
-                  }
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -136,20 +137,18 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Staff-specific field */}
             {userType === "staff" && (
               <div className="space-y-2">
                 <Label htmlFor="department">Department</Label>
                 <div className="relative">
-                  <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="department"
                     type="text"
-                    placeholder="e.g., Sales, IT, HR"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
                     className="pl-10"
-                    required={userType === "staff"}
+                    required
                   />
                 </div>
               </div>
@@ -158,11 +157,10 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
@@ -170,14 +168,14 @@ export default function RegisterPage() {
                 />
               </div>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="confirmPassword"
                   type="password"
-                  placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="pl-10"
@@ -186,22 +184,20 @@ export default function RegisterPage() {
               </div>
             </div>
           </CardContent>
+
           <CardFooter className="flex flex-col space-y-4">
             <Button
               type="submit"
               disabled={submitting}
-              className="w-full bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
+              className="w-full bg-orange-600 hover:bg-orange-700"
             >
               {submitting
-                ? "Creating account..."
+                ? (userType === "admin" ? "Creating account..." : "جاري إنشاء الحساب...")
                 : `Create ${userType === "admin" ? "Admin" : "Staff"} Account`}
             </Button>
             <p className="text-sm text-center text-gray-600 dark:text-gray-400">
               Already have an account?{" "}
-              <Link
-                href="/"
-                className="text-orange-600 dark:text-orange-500 hover:underline"
-              >
+              <Link href="/" className="text-orange-600 hover:underline">
                 Sign in
               </Link>
             </p>
