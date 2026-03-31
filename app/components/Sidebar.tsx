@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { motion } from "motion/react";
 import {
   Home,
   Users,
@@ -38,24 +39,36 @@ export function Sidebar() {
   };
 
   return (
-    <div
-      className="h-screen bg-white dark:bg-gray-950 text-gray-800 dark:text-white flex flex-col relative border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out"
-      style={{ width: isExpanded ? "16rem" : "5rem" }}
+    <motion.div
+      className="h-screen bg-white dark:bg-gray-950 text-gray-800 dark:text-white flex flex-col relative border-r border-gray-200 dark:border-gray-800"
+      initial={{ width: "5rem" }}
+      animate={{ width: isExpanded ? "16rem" : "5rem" }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
     >
       {/* Header */}
       <div className="p-4 flex items-center h-16 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex items-center gap-3 w-full">
+        <motion.div
+          className="flex items-center gap-3 w-full"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
           <div className="w-8 h-8 bg-orange-600 dark:bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
             <span className="font-bold text-white">A</span>
           </div>
-          {isExpanded && (
-            <span className="font-semibold whitespace-nowrap overflow-hidden text-gray-900 dark:text-white">
-              Admin Panel
-            </span>
-          )}
-        </div>
+          <motion.span
+            className="font-semibold whitespace-nowrap overflow-hidden text-gray-900 dark:text-white"
+            initial={{ opacity: 0, width: 0 }}
+            animate={{
+              opacity: isExpanded ? 1 : 0,
+              width: isExpanded ? "auto" : 0,
+            }}
+            transition={{ duration: 0.3 }}
+          >
+            Admin Panel
+          </motion.span>
+        </motion.div>
       </div>
 
       {/* Menu Items */}
@@ -67,20 +80,29 @@ export function Sidebar() {
 
             return (
               <li key={item.path}>
-                <Link
-                  href={item.path}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? "bg-orange-600 dark:bg-orange-500 text-white shadow-sm"
-                      : "text-gray-700 dark:text-gray-400 hover:bg-orange-50 dark:hover:bg-gray-900 hover:text-orange-600 dark:hover:text-white"
-                  }`}
-                >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  {isExpanded && (
-                    <span className="whitespace-nowrap overflow-hidden">
+                <Link href={item.path}>
+                  <motion.div
+                    className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
+                      isActive
+                        ? "bg-orange-600 dark:bg-orange-500 text-white shadow-sm"
+                        : "text-gray-700 dark:text-gray-400 hover:bg-orange-50 dark:hover:bg-gray-900 hover:text-orange-600 dark:hover:text-white"
+                    }`}
+                    whileHover={{ x: 4 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    <motion.span
+                      className="whitespace-nowrap overflow-hidden"
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{
+                        opacity: isExpanded ? 1 : 0,
+                        width: isExpanded ? "auto" : 0,
+                      }}
+                      transition={{ duration: 0.3 }}
+                    >
                       {item.label}
-                    </span>
-                  )}
+                    </motion.span>
+                  </motion.div>
                 </Link>
               </li>
             );
@@ -100,11 +122,17 @@ export function Sidebar() {
           ) : (
             <Sun className="w-5 h-5 flex-shrink-0" />
           )}
-          {isExpanded && (
-            <span className="whitespace-nowrap overflow-hidden">
-              {theme === "light" ? "Dark Mode" : "Light Mode"}
-            </span>
-          )}
+          <motion.span
+            className="whitespace-nowrap overflow-hidden"
+            initial={{ opacity: 0, width: 0 }}
+            animate={{
+              opacity: isExpanded ? 1 : 0,
+              width: isExpanded ? "auto" : 0,
+            }}
+            transition={{ duration: 0.3 }}
+          >
+            {theme === "light" ? "Dark Mode" : "Light Mode"}
+          </motion.span>
         </Button>
         <Button
           variant="ghost"
@@ -112,11 +140,19 @@ export function Sidebar() {
           className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-gray-700 dark:text-gray-400 hover:bg-orange-50 dark:hover:bg-gray-900 hover:text-orange-600 dark:hover:text-white justify-start"
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />
-          {isExpanded && (
-            <span className="whitespace-nowrap overflow-hidden">Logout</span>
-          )}
+          <motion.span
+            className="whitespace-nowrap overflow-hidden"
+            initial={{ opacity: 0, width: 0 }}
+            animate={{
+              opacity: isExpanded ? 1 : 0,
+              width: isExpanded ? "auto" : 0,
+            }}
+            transition={{ duration: 0.3 }}
+          >
+            Logout
+          </motion.span>
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
 }

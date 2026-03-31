@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAuth } from "../../contexts/AuthContext";
-import { supabase } from "../../lib/supabase";
+import { useState } from "react";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -15,6 +13,8 @@ import { DeleteModal } from "../../components/modals/DeleteModal";
 import { AddModal } from "../../components/modals/AddModal";
 import { ConfirmModal } from "../../components/modals/ConfirmModal";
 import { Plus, Trash2, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
+import { Toaster } from "../../components/ui/sonner";
 
 interface Item {
   id: number;
@@ -23,8 +23,6 @@ interface Item {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const [staffCount, setStaffCount] = useState(0);
   const [items, setItems] = useState<Item[]>([
     { id: 1, name: "Sample Item 1", description: "This is a sample item" },
     { id: 2, name: "Sample Item 2", description: "Another sample item" },
@@ -37,20 +35,10 @@ export default function DashboardPage() {
   const [addModal, setAddModal] = useState(false);
   const [confirmModal, setConfirmModal] = useState(false);
 
-  useEffect(() => {
-    async function fetchStats() {
-      const { count } = await supabase
-        .from("staff")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true);
-      setStaffCount(count ?? 0);
-    }
-    fetchStats();
-  }, []);
-
   const handleDelete = () => {
     if (deleteModal.item) {
       setItems(items.filter((item) => item.id !== deleteModal.item?.id));
+      toast.success(`"${deleteModal.item.name}" has been deleted`);
     }
     setDeleteModal({ open: false });
   };
@@ -62,20 +50,23 @@ export default function DashboardPage() {
       description: data.description,
     };
     setItems([...items, newItem]);
+    toast.success(`"${data.name}" has been added`);
   };
 
   const handleConfirmAction = () => {
+    toast.success("Action confirmed successfully!");
     setConfirmModal(false);
   };
 
   return (
     <div className="p-8">
+      <Toaster />
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold dark:text-white">Dashboard</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Welcome back, {user?.email}
+              Manage your items and explore the application
             </p>
           </div>
           <div className="flex gap-2">
@@ -108,11 +99,11 @@ export default function DashboardPage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Active Staff</CardTitle>
-              <CardDescription>Currently active staff members</CardDescription>
+              <CardTitle>Active Users</CardTitle>
+              <CardDescription>Currently online</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold dark:text-white">{staffCount}</p>
+              <p className="text-3xl font-bold dark:text-white">24</p>
             </CardContent>
           </Card>
           <Card>

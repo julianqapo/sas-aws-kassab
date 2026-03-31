@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { FileText } from "lucide-react";
 
 export default function DocumentsPage() {
   return (
@@ -28,10 +27,9 @@ export default function DocumentsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-              <FileText className="w-12 h-12 mb-4" />
-              <p>Document library interface coming soon...</p>
-            </div>
+            <p className="text-gray-600 dark:text-gray-400">
+              Document library interface coming soon...
+            </p>
           </CardContent>
         </Card>
       </div>
