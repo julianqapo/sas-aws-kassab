@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "../lib/supabase";
+import { handleForgotPasswordAction } from "./db_service";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -24,13 +24,16 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-      email
-    );
-    if (resetError) {
-      setError(resetError.message);
-    } else {
+
+    const formData = new FormData();
+    formData.set("email", email);
+
+    const result = await handleForgotPasswordAction(null, formData);
+
+    if (result?.ok) {
       setSubmitted(true);
+    } else if (result?.message) {
+      setError(result.message);
     }
   };
 

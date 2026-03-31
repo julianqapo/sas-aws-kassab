@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../contexts/AuthContext";
+import { handleSignUpAction, handleStaffSignUpAction } from "./db_service";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -21,7 +21,6 @@ type UserType = "admin" | "staff";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { signUp } = useAuth();
   const [userType, setUserType] = useState<UserType>("admin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -39,12 +38,19 @@ export default function RegisterPage() {
       return;
     }
     setSubmitting(true);
-    const { error: signUpError } = await signUp(email, password);
-    if (signUpError) {
-      setError(signUpError);
+
+    const formData = new FormData();
+    formData.set("email", email);
+    formData.set("password", password);
+
+    const action = userType === "admin" ? handleSignUpAction : handleStaffSignUpAction;
+    const result = await action(null, formData);
+
+    if (result?.ok && result?.redirectTo) {
+      router.push(result.redirectTo);
+    } else if (result?.message) {
+      setError(result.message);
       setSubmitting(false);
-    } else {
-      router.push("/dashboard");
     }
   };
 

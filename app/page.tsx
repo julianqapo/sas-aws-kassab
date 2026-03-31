@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "./contexts/AuthContext";
+import { handleSignInAction, handleStaffSignInAction } from "./db_service";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
@@ -21,7 +22,7 @@ type UserType = "admin" | "staff";
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, loading, signIn } = useAuth();
+  const { user, loading } = useAuth();
   const [userType, setUserType] = useState<UserType>("admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,12 +51,19 @@ export default function HomePage() {
     e.preventDefault();
     setError("");
     setSubmitting(true);
-    const { error: signInError } = await signIn(email, password);
-    if (signInError) {
-      setError(signInError);
+
+    const formData = new FormData();
+    formData.set("email", email);
+    formData.set("password", password);
+
+    const action = userType === "admin" ? handleSignInAction : handleStaffSignInAction;
+    const result = await action(null, formData);
+
+    if (result?.ok && result?.redirectTo) {
+      router.push(result.redirectTo);
+    } else if (result?.message) {
+      setError(result.message);
       setSubmitting(false);
-    } else {
-      router.push("/dashboard");
     }
   };
 
