@@ -2,9 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { Switch } from "../../components/ui/switch";
 import {
   Card,
   CardContent,
@@ -19,24 +16,14 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../components/ui/dialog";
 import { Plus, Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "../../components/ui/sonner";
-import {
-  getStaffWithPermissions,
-  getAllPermissions,
-  manageStaffAndPermissions,
-} from "./db_service";
+import { getStaffWithPermissions, getAllPermissions } from "./db_service";
+// import StaffModal from "StaffModal";
+import StaffModal from "./StaffModal";
 
-interface StaffMember {
+export interface StaffMember {
   id: string;
   email: string;
   full_name: string;
@@ -44,7 +31,7 @@ interface StaffMember {
   permissions: { id: number; name: string }[];
 }
 
-interface Permission {
+export interface Permission {
   id: number;
   name: string;
 }
@@ -54,18 +41,9 @@ export default function StaffPage() {
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal state
+  // Modal control state
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<StaffMember | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  // Form state
-  const [formEmail, setFormEmail] = useState("");
-  const [formFullName, setFormFullName] = useState("");
-  const [formIsActive, setFormIsActive] = useState(true);
-  const [formPermissions, setFormPermissions] = useState<Set<number>>(
-    new Set()
-  );
 
   const fetchStaff = useCallback(async () => {
     setLoading(true);
@@ -90,7 +68,7 @@ export default function StaffPage() {
         setAllPermissions(result.data || []);
       }
     } catch {
-      // Permissions will be empty - modal will still work
+      console.error("Failed to load permissions");
     }
   }, []);
 
@@ -101,56 +79,12 @@ export default function StaffPage() {
 
   const openAddModal = () => {
     setEditing(null);
-    setFormEmail("");
-    setFormFullName("");
-    setFormIsActive(true);
-    setFormPermissions(new Set());
     setModalOpen(true);
   };
 
   const openEditModal = (member: StaffMember) => {
     setEditing(member);
-    setFormEmail(member.email);
-    setFormFullName(member.full_name);
-    setFormIsActive(member.is_active);
-    setFormPermissions(new Set(member.permissions.map((p) => p.id)));
     setModalOpen(true);
-  };
-
-  const togglePermission = (id: number) => {
-    setFormPermissions((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const result = await manageStaffAndPermissions(
-        formEmail,
-        formFullName,
-        formIsActive,
-        Array.from(formPermissions)
-      );
-      if (result.success) {
-        toast.success(result.message);
-        setModalOpen(false);
-        fetchStaff();
-      } else {
-        toast.error(result.message);
-      }
-    } catch {
-      toast.error("Failed to save staff member");
-    } finally {
-      setSaving(false);
-    }
   };
 
   return (
@@ -168,14 +102,13 @@ export default function StaffPage() {
           </div>
           <Button
             onClick={openAddModal}
-            className="bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
+            className="bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600 text-white"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Staff
           </Button>
         </div>
 
-        {/* Staff Table */}
         <Card>
           <CardHeader>
             <CardTitle className="text-gray-900 dark:text-white">
@@ -234,9 +167,7 @@ export default function StaffPage() {
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {member.permissions.length === 0 ? (
-                              <span className="text-gray-400 text-xs">
-                                None
-                              </span>
+                              <span className="text-gray-400 text-xs">None</span>
                             ) : (
                               member.permissions.map((perm) => (
                                 <span
@@ -269,97 +200,13 @@ export default function StaffPage() {
         </Card>
       </div>
 
-      {/* Add/Edit Staff Modal */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editing ? "Edit Staff Member" : "Add Staff Member"}
-            </DialogTitle>
-            <DialogDescription>
-              {editing
-                ? "Update staff member details and permissions."
-                : "Add a new staff member and assign permissions."}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSave}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="staff-email">Email</Label>
-                <Input
-                  id="staff-email"
-                  type="email"
-                  placeholder="Enter email"
-                  value={formEmail}
-                  onChange={(e) => setFormEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="staff-name">Full Name</Label>
-                <Input
-                  id="staff-name"
-                  type="text"
-                  placeholder="Enter full name"
-                  value={formFullName}
-                  onChange={(e) => setFormFullName(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="staff-active">Active</Label>
-                <Switch
-                  id="staff-active"
-                  checked={formIsActive}
-                  onCheckedChange={setFormIsActive}
-                />
-              </div>
-
-              {/* Permissions */}
-              {allPermissions.length > 0 && (
-                <div className="space-y-3">
-                  <Label>Permissions</Label>
-                  <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                    {allPermissions.map((perm) => (
-                      <div
-                        key={perm.id}
-                        className="flex items-center justify-between py-1"
-                      >
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {perm.name}
-                        </span>
-                        <Switch
-                          checked={formPermissions.has(perm.id)}
-                          onCheckedChange={() => togglePermission(perm.id)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={saving}
-                className="bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
-              >
-                {saving && (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                )}
-                {saving ? "Saving..." : "Save"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <StaffModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        editing={editing}
+        allPermissions={allPermissions}
+        onSuccess={fetchStaff}
+      />
     </div>
   );
 }

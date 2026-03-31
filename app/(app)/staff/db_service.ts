@@ -6,7 +6,8 @@ export async function getStaffWithPermissions() {
   const supabase = createServerSupabaseClient();
 
   const { data, error } = await supabase.rpc("get_staff_with_permissions");
-
+ console.log(data);
+console.log(error);
   if (error) {
     return { success: false, message: error.message, data: [] };
   }
@@ -54,6 +55,7 @@ export async function manageStaffAndPermissions(
     p_is_active: isActive,
     p_permissions: permissions,
   });
+ 
 
   if (error) {
     return { success: false, message: error.message };
