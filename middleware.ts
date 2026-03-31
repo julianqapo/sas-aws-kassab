@@ -1,6 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const AUTH_ROUTES = ["/", "/register", "/forgot-password"];
+const DEFAULT_AUTHENTICATED_ROUTE = "/dashboard";
+const LOGIN_ROUTE = "/";
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -14,15 +18,12 @@ export async function middleware(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        // Set cookies on the request (for downstream server components)
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value)
         );
 
-        // Recreate the response so it carries the updated request cookies
         supabaseResponse = NextResponse.next({ request });
 
-        // Set cookies on the response (for the browser)
         cookiesToSet.forEach(({ name, value, options }) =>
           supabaseResponse.cookies.set(name, value, options)
         );
@@ -30,21 +31,31 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Refresh the session — this keeps auth cookies alive and in sync
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+
+  // If user is NOT authenticated and trying to access a protected route
+  if (!user && !AUTH_ROUTES.includes(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = LOGIN_ROUTE;
+    return NextResponse.redirect(url);
+  }
+
+  // If user IS authenticated and trying to access auth routes (login, register, forgot-password)
+  if (user && AUTH_ROUTES.includes(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = DEFAULT_AUTHENTICATED_ROUTE;
+    return NextResponse.redirect(url);
+  }
 
   return supabaseResponse;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (images, etc.)
-     */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

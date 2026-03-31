@@ -64,7 +64,9 @@ export default function DashboardPage() {
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold dark:text-white">Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Dashboard
+            </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
               Manage your items and explore the application
             </p>
@@ -88,31 +90,41 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Total Items</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">
+                Total Items
+              </CardTitle>
               <CardDescription>Number of items in the system</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold dark:text-white">
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 {items.length}
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Active Users</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">
+                Active Users
+              </CardTitle>
               <CardDescription>Currently online</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold dark:text-white">24</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                24
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Pending Tasks</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">
+                Pending Tasks
+              </CardTitle>
               <CardDescription>Tasks awaiting completion</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold dark:text-white">12</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                12
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -120,7 +132,9 @@ export default function DashboardPage() {
         {/* Items List */}
         <Card>
           <CardHeader>
-            <CardTitle>Your Items</CardTitle>
+            <CardTitle className="text-gray-900 dark:text-white">
+              Your Items
+            </CardTitle>
             <CardDescription>Manage and organize your items</CardDescription>
           </CardHeader>
           <CardContent>
@@ -128,10 +142,10 @@ export default function DashboardPage() {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors dark:border-gray-700"
+                  className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   <div>
-                    <h3 className="font-semibold dark:text-white">
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
                       {item.name}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">

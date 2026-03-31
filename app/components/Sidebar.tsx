@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useTheme } from "../contexts/ThemeContext";
-import { useAuth } from "../contexts/AuthContext";
+import { logoutAction } from "../db_service";
 
 const menuItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
@@ -31,10 +31,9 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const { signOut } = useAuth();
 
   const handleLogout = async () => {
-    await signOut();
+    await logoutAction();
     router.push("/");
   };
 
