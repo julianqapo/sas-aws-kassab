@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -241,8 +242,13 @@ export default function UsersPage() {
                     <TableBody>
                       {users.map((user) => (
                         <TableRow key={user.id}>
-                          <TableCell className="font-medium text-gray-900 dark:text-white">
-                            {user.username}
+                          <TableCell className="font-medium">
+                            <Link 
+                              href={`/users/${user.username}`} 
+                              className="text-orange-600 hover:text-orange-700 hover:underline"
+                            >
+                              {user.username}
+                            </Link>
                           </TableCell>
                           <TableCell className="text-gray-600 dark:text-gray-400">
                             {user.firstname || "—"}

@@ -15,8 +15,8 @@ export async function sasApiCall(
     },
     body: JSON.stringify({ method, path, body }),
   });
-  console.log("sas-clients.ts")
-  console.log(response);
+  // console.log("sas-clients.ts")
+  // console.log(response);
 
   if (!response.ok) {
     const error = await response
