@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "../../components/ui/sonner";
-import { getUsers, createUser, deleteUser, getProfiles } from "./db_service";
+import { getUsers, getProfiles } from "./db_service";
 import type { SASUser, SASProfile, PaginatedResponse } from "../../types/sas-types";
 
 const PAGE_SIZE = 15;
@@ -120,49 +120,8 @@ export default function UsersPage() {
     return profile?.name ?? String(profileId);
   };
 
-  const handleAddUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAddLoading(true);
-    try {
-      await createUser({
-        username: newUser.username,
-        password: newUser.password,
-        firstname: newUser.firstname || undefined,
-        lastname: newUser.lastname || undefined,
-        profile_id: newUser.profile_id || undefined,
-      });
-      toast.success(`User "${newUser.username}" created`);
-      setAddModal(false);
-      setNewUser({
-        username: "",
-        password: "",
-        firstname: "",
-        lastname: "",
-        profile_id: 0,
-      });
-      fetchUsers();
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create user";
-      toast.error(message);
-    } finally {
-      setAddLoading(false);
-    }
-  };
+  
 
-  const handleDelete = async () => {
-    if (!deleteModal.user) return;
-    try {
-      await deleteUser(deleteModal.user.id);
-      toast.success(`User "${deleteModal.user.username}" deleted`);
-      setDeleteModal({ open: false });
-      fetchUsers();
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete user";
-      toast.error(message);
-    }
-  };
 
   return (
     <div className="p-8">
@@ -343,111 +302,10 @@ export default function UsersPage() {
               Create a new SAS4 user account.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleAddUser}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  placeholder="Enter username"
-                  value={newUser.username}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, username: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter password"
-                  value={newUser.password}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, password: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstname">First Name</Label>
-                  <Input
-                    id="firstname"
-                    placeholder="First name"
-                    value={newUser.firstname}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, firstname: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastname">Last Name</Label>
-                  <Input
-                    id="lastname"
-                    placeholder="Last name"
-                    value={newUser.lastname}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, lastname: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-              {profiles.length > 0 && (
-                <div className="space-y-2">
-                  <Label htmlFor="profile">Profile</Label>
-                  <select
-                    id="profile"
-                    className="flex h-9 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-transparent px-3 py-1 text-sm text-gray-900 dark:text-white shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    value={newUser.profile_id}
-                    onChange={(e) =>
-                      setNewUser({
-                        ...newUser,
-                        profile_id: Number(e.target.value),
-                      })
-                    }
-                  >
-                    <option value={0}>Select a profile</option>
-                    {profiles.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setAddModal(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={addLoading}
-                className="bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
-              >
-                {addLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Create User
-              </Button>
-            </DialogFooter>
-          </form>
+          
         </DialogContent>
       </Dialog>
 
-      {/* Delete Modal */}
-      <DeleteModal
-        open={deleteModal.open}
-        onOpenChange={(open) => setDeleteModal({ open })}
-        onConfirm={handleDelete}
-        title="Delete User"
-        description="This action cannot be undone. The user will be permanently removed from SAS4."
-        itemName={deleteModal.user?.username}
-      />
     </div>
   );
 }

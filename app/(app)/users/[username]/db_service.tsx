@@ -1,98 +1,116 @@
-"use server";
-
+'use server';
+// start here
 import CryptoJS from 'crypto-js';
+import { cookies } from 'next/headers';
 
-export async function loginUser(username: string) {
-  const secretKey = process.env.SECRET_KEY;
-  const baseUrl = process.env.BASE_URL;
-  const loginPath = 'user/api/index.php/api/auth/login';
+// Helper to check if token is expired (or about to expire in the next 5 mins)
+function isTokenExpired(token: string) {
+  try {
+    const payloadBase64 = token.split('.')[1];
+    const decodedJson = Buffer.from(payloadBase64, 'base64').toString('utf8');
+    const payload = JSON.parse(decodedJson);
+    const currentTimeInSeconds = Math.floor(Date.now() / 1000);
+    return payload.exp < (currentTimeInSeconds + 300); 
+  } catch (error) {
+    return true; // If we can't parse it, assume it's expired
+  }
+}
 
-  if (!secretKey || !baseUrl) {
-    return { success: false, error: "Server environment variables missing." };
+/**
+ * 1. The Smart Token Manager
+ */
+/**
+ * 1. The Smart Token Manager
+ */
+export async function getSmartToken(username: string) {
+  // FIX: Added 'await' because cookies() is async in Next.js 15+
+  const cookieStore = await cookies(); 
+  const cookieName = `sas4_token_${username}`;
+  
+  // Check if we have a valid cookie
+  const existingToken = cookieStore.get(cookieName)?.value;
+  if (existingToken && !isTokenExpired(existingToken)) {
+    return existingToken;
   }
 
-  // 1. Prepare the raw JSON data
-  const rawData = JSON.stringify({
-    username: username,
-    password: "2211",
-    language: "en"
+  // If missing or expired, fetch a new one
+  const secretKey = process.env.SECRET_KEY;
+  const baseUrl = process.env.BASE_URL;
+  if (!secretKey || !baseUrl) throw new Error("Server environment variables missing.");
+
+  const rawData = JSON.stringify({ username, password: "2211", language: "en" });
+  const encryptedText = CryptoJS.AES.encrypt(rawData, secretKey).toString();
+  
+  const formData = new URLSearchParams();
+  formData.append('payload', encryptedText);
+
+  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+  const response = await fetch(`${cleanBaseUrl}/user/api/index.php/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: formData.toString(),
+    cache: 'no-store'
   });
 
+  if (!response.ok) throw new Error(`SAS4 Login Failed: ${response.status}`);
+  
+  const responseText = await response.text();
+  const token = JSON.parse(responseText).token;
+  
+  if (!token) throw new Error("No token returned from SAS4.");
+
+  // Save securely to cookies (7 days, HTTP-only)
+  // Since cookieStore was awaited, .set() will now work perfectly
+  cookieStore.set(cookieName, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 60 * 60 * 24 * 7,
+    path: "/",
+  });
+
+  return token;
+}
+
+/**
+ * 2. The Main Dashboard Fetcher
+ * Your client component calls this function directly!
+ */
+export async function loginUser(username: string) {
   try {
-    // 2. Encrypt the data and format as URL-Encoded
-    const encryptedText = CryptoJS.AES.encrypt(rawData, secretKey).toString();
-    const formData = new URLSearchParams();
-    formData.append('payload', encryptedText);
-
-    const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-    const fullUrl = `${cleanBaseUrl}/${loginPath}`;
-
-    // 3. Execute the Login Fetch
-    const loginResponse = await fetch(fullUrl, {
-      method: "POST",
+    // Get the token (instantly from cookie, or fetches a new one)
+    const token = await getSmartToken(username);
+    
+    const baseUrl = process.env.BASE_URL?.replace(/\/$/, '');
+    const fetchOptions = {
+      method: "GET",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/json"
       },
-      body: formData.toString(),
-      cache: 'no-store'
-    });
+      cache: 'no-store' as RequestCache
+    };
 
-    const responseStatus = loginResponse.status;
-    const responseText = await loginResponse.text();
+    // Fetch the 3 endpoints simultaneously
+    const [userRes, dashboardRes, serviceRes] = await Promise.all([
+      fetch(`${baseUrl}/user/api/index.php/api/user`, fetchOptions),
+      fetch(`${baseUrl}/user/api/index.php/api/dashboard`, fetchOptions),
+      fetch(`${baseUrl}/user/api/index.php/api/service`, fetchOptions)
+    ]);
 
-    if (loginResponse.ok) {
-      // 4. Parse the successful login and extract the token
-      const loginData = JSON.parse(responseText);
-      const token = loginData.token;
+    const userData = userRes.ok ? await userRes.json() : null;
+    const dashboardData = dashboardRes.ok ? await dashboardRes.json() : null;
+    const serviceData = serviceRes.ok ? await serviceRes.json() : null;
 
-      if (!token) {
-         return { success: false, error: "Login succeeded but no token was returned." };
-      }
-
-      // 5. Setup the headers for the authorized GET requests
-      const fetchOptions = {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`, // Pass the JWT token here
-          "Accept": "application/json"
-        },
-        cache: 'no-store' as RequestCache
-      };
-
-      // 6. Fetch the 3 endpoints simultaneously for better performance
-      const [userRes, dashboardRes, serviceRes] = await Promise.all([
-        fetch(`${cleanBaseUrl}/user/api/index.php/api/user`, fetchOptions),
-        fetch(`${cleanBaseUrl}/user/api/index.php/api/dashboard`, fetchOptions),
-        fetch(`${cleanBaseUrl}/user/api/index.php/api/service`, fetchOptions)
-      ]);
-
-      // 7. Parse the responses
-      // We check .ok for each just in case one endpoint fails, so the others still return data
-      const userData = userRes.ok ? await userRes.json() : null;
-      const dashboardData = dashboardRes.ok ? await dashboardRes.json() : null;
-      const serviceData = serviceRes.ok ? await serviceRes.json() : null;
-
-      // 8. Return everything bundled nicely to the client
-      return { 
-        success: true, 
-        data: {
-          user: userData,
-          dashboard: dashboardData,
-          service: serviceData
-        } 
-      };
-      
-    } else {
-      console.error("API Error Response:", responseText);
-      return { 
-        success: false, 
-        error: `Server Error ${responseStatus}`,
-        detail: responseText 
-      };
-    }
+    return { 
+      success: true, 
+      data: { user: userData, dashboard: dashboardData, service: serviceData } 
+    };
 
   } catch (error: any) {
-    console.error("Client/Server Action Error:", error);
+    console.error("Dashboard Fetch Error:", error);
     return { success: false, error: error.message };
   }
 }
+
+// end here

@@ -47,32 +47,8 @@ export async function getUsers(
   );
 }
 
-export async function createUser(data: {
-  username: string;
-  password: string;
-  firstname?: string;
-  lastname?: string;
-  profile_id?: number;
-  enabled?: number;
-  expiration?: string;
-}) {
-  const accessToken = await getAccessToken();
-  return sasApiCall(
-    accessToken,
-    "POST",
-    "/admin/api/index.php/api/user",
-    data as Record<string, unknown>
-  );
-}
 
-export async function deleteUser(userId: number) {
-  const accessToken = await getAccessToken();
-  return sasApiCall(
-    accessToken,
-    "DELETE",
-    `/admin/api/index.php/api/user/${userId}`
-  );
-}
+
 
 export async function getProfiles(managerId: number = 0) {
   const accessToken = await getAccessToken();
