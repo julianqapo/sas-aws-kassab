@@ -4,6 +4,8 @@ import CryptoJS from 'crypto-js';
 import { cookies } from 'next/headers';
 
 // Helper to check if token is expired (or about to expire in the next 5 mins)
+// ########################################################
+// THis is only for (clients) not the staff 
 function isTokenExpired(token: string) {
   try {
     const payloadBase64 = token.split('.')[1];
@@ -22,6 +24,8 @@ function isTokenExpired(token: string) {
 /**
  * 1. The Smart Token Manager
  */
+// THis is only for (clients) not the staff 
+// #########################################################
 export async function getSmartToken(username: string) {
   // FIX: Added 'await' because cookies() is async in Next.js 15+
   const cookieStore = await cookies(); 
