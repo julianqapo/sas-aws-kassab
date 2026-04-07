@@ -21,12 +21,12 @@ import { useTheme } from "../contexts/ThemeContext";
 import { logoutAction } from "../db_service";
 
 const menuItems = [
-  { icon: Home, label: "Dashboard", path: "/dashboard" },
-  { icon: BarChart, label: "Analytics", path: "/analytics" },
+  // { icon: Home, label: "Dashboard", path: "/dashboard" },
+  // { icon: BarChart, label: "Analytics", path: "/analytics" },
   { icon: Users, label: "Users", path: "/users" },
   { icon: UserCog, label: "Staff", path: "/staff" },
   { icon: Wifi, label: "Cards", path: "/cards" },
-  { icon: FileText, label: "Documents", path: "/documents" },
+  // { icon: FileText, label: "Documents", path: "/documents" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
