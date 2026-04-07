@@ -5,8 +5,15 @@ export interface SASUser {
   lastname: string;
   profile_id: number;
   enabled: number;
+  
   expiration: string;
   balance: string;
+  remaining_days: string;
+  name: string;
+  parent_username: string;
+  last_online: string;
+  daily_traffic_details: {traffic: string;};
+  profile_details: {name: string;};
   manager_id: number;
 }
 

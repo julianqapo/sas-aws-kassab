@@ -37,9 +37,3 @@ export async function getUsers(
 
 
 
-export async function getProfiles(managerId: number = 0) {
-  return sasApiCall(
-    "GET",
-    `/admin/api/index.php/api/list/profile/${managerId}`
-  );
-}
