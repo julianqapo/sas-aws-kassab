@@ -118,3 +118,191 @@ export async function loginUser(username: string) {
 }
 
 // end here
+
+
+// ########################################################
+// fetching the avilable cards
+// # ########################################################
+import { sasApiCall } from '@/app/lib/sas-client';
+
+export async function getOldestAvailableSeries() {
+  const payload = {
+    page: 1,
+    count: 1000, // Fetch a large batch to ensure we find available stock
+    sortBy: "series_date",
+    direction: "asc", // "asc" ensures the OLDEST records come first
+    search: "",
+    columns: [
+      "series", 
+      "type", 
+      "value", 
+      "qty", 
+      "used", 
+      "username", 
+      "name", 
+      "expiration", 
+      "series_date"
+    ]
+  };
+
+  try {
+    const result = await sasApiCall("POST", "/admin/api/index.php/api/index/series", payload);
+
+    if (!result.success || !result.data || !Array.isArray(result.data.data)) {
+      throw new Error(result.error || "Failed to fetch series data");
+    }
+
+    const allRows = result.data.data;
+    
+    // Use a Map to keep only the UNIQUE oldest row per 'value'
+    const uniqueValueMap = new Map();
+
+    allRows.forEach((row: any) => {
+      const qty = Number(row.qty) || 0;
+      const used = Number(row.used) || 0;
+      const value = row.value;
+
+      // 1. Only process rows that have stock left
+      // 2. Only add to Map if we haven't seen this 'value' yet
+      // Because the list is sorted by oldest date, the first one we find is the oldest
+      if (used < qty && !uniqueValueMap.has(value)) {
+        uniqueValueMap.set(value, {
+          ...row,
+          quantity_left: qty - used
+        });
+      }
+    });
+
+    // // Convert Map back to an array
+    // return Array.from(uniqueValueMap.values());
+    // Convert Map to array AND sort by 'value'
+    return Array.from(uniqueValueMap.values()).sort((a, b) => 
+      // alphanumeric sort ensures 10 comes after 2
+      String(a.value).localeCompare(String(b.value), undefined, { numeric: true, sensitivity: 'base' })
+    );
+
+  } catch (error) {
+    console.error("Error fetching oldest series:", error);
+    throw error;
+  }
+}
+
+
+// ########################################################
+// get first available PIN
+/**
+ * Fetches the first available (unused) PIN from a specific card series.
+ * @param series The series ID/name (e.g., "NOVA-40")
+ * @returns The PIN string or null if no unused cards are found.
+ */
+export async function getFirstAvailablePin(series: string): Promise<string | null> {
+  const payload = {
+    page: 1,
+    count: 50, // Fetch a small batch to find at least one unused card
+    sortBy: "used_at",
+    direction: "asc",
+    search: "",
+    columns: [
+      "id",
+      "serialnumber",
+      "pin",
+      "username",
+      "password",
+      "used_at"
+    ]
+  };
+
+  try {
+    // API endpoint includes the series parameter in the URL
+    const endpoint = `/admin/api/index.php/api/index/card/${series}`;
+    const result = await sasApiCall("POST", endpoint, payload);
+
+    if (!result.success || !result.data || !Array.isArray(result.data.data)) {
+      throw new Error(result.error || "Failed to fetch cards for this series");
+    }
+
+    const cards = result.data.data;
+
+    // Find the first card where used_at is null, undefined, or an empty string
+    const availableCard = cards.find((card: any) => {
+      return !card.used_at || card.used_at === "" || card.used_at === "0000-00-00 00:00:00";
+    });
+
+    if (availableCard && availableCard.pin) {
+      return availableCard.pin;
+    }
+
+    // Return null if no unused card is found in the batch
+    return null;
+
+  } catch (error) {
+    console.error(`Error fetching PIN for series ${series}:`, error);
+    return null;
+  }
+}
+
+
+
+// ########################################################
+// activate subscription for a client 
+/**
+ * Activates a subscription using a PIN for a specific user.
+ * @param username The username (used to retrieve the Bearer token)
+ * @param pin The card PIN to redeem
+ */
+export async function activateSubscription(username: string, pin: string) {
+  try {
+    // 1. Get the Bearer Token for this user
+    const token = await getSmartToken(username);
+    
+    const secretKey = process.env.SECRET_KEY;
+    const baseUrl = process.env.BASE_URL;
+    
+    if (!secretKey || !baseUrl) {
+      throw new Error("Server environment variables (SECRET_KEY or BASE_URL) are missing.");
+    }
+
+    const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+
+    // 2. Prepare and Encrypt the Payload
+    const rawData = JSON.stringify({ pin: pin });
+    const encryptedText = CryptoJS.AES.encrypt(rawData, secretKey).toString();
+    
+    // 3. Format as URLSearchParams (application/x-www-form-urlencoded)
+    const formData = new URLSearchParams();
+    formData.append('payload', encryptedText);
+
+    // 4. Execute the POST request to /api/redeem
+    const response = await fetch(`${cleanBaseUrl}/user/api/index.php/api/redeem`, {
+      method: "POST",
+      headers: { 
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json"
+      },
+      body: formData.toString(),
+      cache: 'no-store'
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || result.success === false) {
+      return { 
+        success: false, 
+        error: result.error || result.message || "Failed to redeem PIN." 
+      };
+    }
+
+    return { 
+      success: true, 
+      data: result 
+    };
+
+  } catch (error: any) {
+    console.error("Redemption Error:", error);
+    return { 
+      success: false, 
+      error: error.message || "An unexpected error occurred during activation." 
+    };
+  }
+}
