@@ -74,19 +74,33 @@ export default function UsersPage() {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const result: PaginatedResponse<SASUser> = await getUsers(
-        page,
-        PAGE_SIZE,
-        search
-      );
-      setUsers(result.data || []);
-      setTotalPages(result.last_page || 1);
-      setTotal(result.total || 0);
-      setFrom(result.from || 0);
-      setTo(result.to || 0);
+      // 1. Correct the TypeScript cast to match the nested structure
+      const result = (await getUsers(page, PAGE_SIZE, search)) as {
+        success: boolean;
+        data?: {
+          data: SASUser[];     // The actual array of users
+          last_page: number;   // Pagination details are inside result.data
+          total: number;
+          from: number;
+          to: number;
+        };
+        error?: string;
+      };
+
+      // 2. Safely check if the request was successful and the nested array exists
+      if (!result.success || !result.data || !Array.isArray(result.data.data)) {
+        throw new Error(result.error || "Failed to load users");
+      }
+
+      // 3. Update state using the nested 'data' object
+      setUsers(result.data.data);
+      setTotalPages(result.data.last_page || 1);
+      setTotal(result.data.total || 0);
+      setFrom(result.data.from || 0);
+      setTo(result.data.to || 0);
+
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to load users";
+      const message = err instanceof Error ? err.message : "Failed to load users";
       toast.error(message);
     } finally {
       setLoading(false);

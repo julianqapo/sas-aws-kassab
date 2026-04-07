@@ -3,17 +3,6 @@
 import { createServerSupabaseClient } from "../../lib/supabase-server";
 import { sasApiCall } from "../../lib/sas-client";
 
-async function getAccessToken() {
-  const supabase = createServerSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const accessToken = session?.access_token;
-  if (!accessToken) {
-    throw new Error("Not authenticated");
-  }
-  return accessToken;
-}
 
 export async function getUsers(
   page: number,
@@ -22,9 +11,7 @@ export async function getUsers(
   sortBy?: string,
   direction?: string
 ) {
-  const accessToken = await getAccessToken();
-  return sasApiCall(
-    accessToken,
+  const response = await sasApiCall(
     "POST",
     "/admin/api/index.php/api/index/user",
     {
@@ -45,15 +32,14 @@ export async function getUsers(
       ],
     }
   );
+  return response;
 }
 
 
 
 
 export async function getProfiles(managerId: number = 0) {
-  const accessToken = await getAccessToken();
   return sasApiCall(
-    accessToken,
     "GET",
     `/admin/api/index.php/api/list/profile/${managerId}`
   );
