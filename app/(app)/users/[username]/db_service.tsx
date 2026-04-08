@@ -306,3 +306,84 @@ export async function activateSubscription(username: string, pin: string) {
     };
   }
 }
+
+
+
+
+
+// ########################################################
+// ###################### INVOICES ########################
+// ########################################################
+/**
+ * Fetches the invoice history for a specific user.
+ * @param username The username (used to retrieve the Bearer token)
+ * @param page The page number to fetch (default: 1)
+ * @param count The number of records per page (default: 10)
+ */
+export async function getUserInvoices(
+  username: string,
+  page: number = 1,
+  count: number = 10
+) {
+  try {
+    const token = await getSmartToken(username);
+
+    const secretKey = process.env.SECRET_KEY;
+    const baseUrl = process.env.BASE_URL;
+
+    if (!baseUrl || !secretKey) {
+      throw new Error("Server environment variables (SECRET_KEY or BASE_URL) are missing.");
+    }
+
+    const cleanBaseUrl = baseUrl.replace(/\/$/, "");
+
+    const invoicePayload = {
+      page,
+      count,
+      sortBy: "id",
+      direction: "desc"
+    };
+
+    const encryptedPayload = CryptoJS.AES.encrypt(
+      JSON.stringify(invoicePayload),
+      secretKey
+    ).toString();
+
+    const body = new URLSearchParams({
+      payload: encryptedPayload
+    });
+
+    const response = await fetch(
+      `${cleanBaseUrl}/user/api/index.php/api/index/invoice`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: body.toString(),
+        cache: "no-store"
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: result?.message || "Failed to fetch invoices."
+      };
+    }
+
+    return {
+      success: true,
+      data: result
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || "An unexpected error occurred while fetching invoices."
+    };
+  }
+}
