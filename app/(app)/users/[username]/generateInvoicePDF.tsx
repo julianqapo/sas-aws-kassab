@@ -1,5 +1,4 @@
 import jsPDF from "jspdf";
-import { ArabicReshaper } from "arabic-reshaper";
 
 interface InvoiceData {
   id: number;
@@ -27,11 +26,25 @@ import arabicReshaper from "arabic-reshaper";
 
 function reshapeArabic(text: string): string {
   if (!hasArabic(text)) return text;
-  // Try common export patterns
-  const reshape = typeof arabicReshaper === "function" 
-    ? arabicReshaper 
-    : arabicReshaper.reshape || arabicReshaper.default;
-  const reshaped = reshape(text);
+  
+  // The arabic-reshaper v1.1.0 exports an object with convertArabic method
+  let reshapeFn: any;
+  if (typeof arabicReshaper === "function") {
+    reshapeFn = arabicReshaper;
+  } else if (arabicReshaper && typeof (arabicReshaper as any).convertArabic === "function") {
+    reshapeFn = (arabicReshaper as any).convertArabic;
+  } else if (arabicReshaper && typeof (arabicReshaper as any).default?.convertArabic === "function") {
+    reshapeFn = (arabicReshaper as any).default.convertArabic;
+  } else {
+    reshapeFn = (arabicReshaper as any)?.reshape || (arabicReshaper as any)?.default;
+  }
+
+  if (typeof reshapeFn !== "function") {
+    console.error("Could not find arabic reshaper function", arabicReshaper);
+    return text;
+  }
+
+  const reshaped = reshapeFn(text);
   return reshaped.split("").reverse().join("");
 }
 
