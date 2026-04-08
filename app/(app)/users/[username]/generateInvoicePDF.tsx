@@ -22,33 +22,14 @@ function hasArabic(text: string): boolean {
   return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
 }
 
-import arabicReshaper from "arabic-reshaper";
-
-function reshapeArabic(text: string): string {
+// Use jsPDF's built-in Arabic processing
+function processArabicText(doc: jsPDF, text: string): string {
   if (!hasArabic(text)) return text;
-  
-  // The arabic-reshaper v1.1.0 exports an object with convertArabic method
-  let reshapeFn: any;
-  if (typeof arabicReshaper === "function") {
-    reshapeFn = arabicReshaper;
-  } else if (arabicReshaper && typeof (arabicReshaper as any).convertArabic === "function") {
-    reshapeFn = (arabicReshaper as any).convertArabic;
-  } else if (arabicReshaper && typeof (arabicReshaper as any).default?.convertArabic === "function") {
-    reshapeFn = (arabicReshaper as any).default.convertArabic;
-  } else {
-    reshapeFn = (arabicReshaper as any)?.reshape || (arabicReshaper as any)?.default;
-  }
-
-  if (typeof reshapeFn !== "function") {
-    console.error("Could not find arabic reshaper function", arabicReshaper);
-    return text;
-  }
-
-  const reshaped = reshapeFn(text);
-  return reshaped.split("").reverse().join("");
+  // jsPDF has a built-in processArabic that handles reshaping + ligatures + RTL
+  return (doc as any).processArabic(text) || text;
 }
 
-async function loadArabicSupport(doc: jsPDF): Promise<void> {
+async function loadArabicFont(doc: jsPDF): Promise<void> {
   const fontUrl = "https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf";
   const response = await fetch(fontUrl);
   const buffer = await response.arrayBuffer();
@@ -76,37 +57,30 @@ export async function generateInvoicePDF(
   const contentWidth = pageWidth - margin * 2;
 
   const customerName = `${user.firstname} ${user.lastname}`;
-  const needsArabic = hasArabic(customerName) || hasArabic(invoice.description);
-
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [pageWidth, 120] });
-
-  if (needsArabic) {
-    await loadArabicSupport(doc);
-  }
 
   const setFont = (d: jsPDF, style: "normal" | "bold", size: number) => {
     d.setFontSize(size);
-    d.setFont(needsArabic ? "Amiri" : "helvetica", style);
+    d.setFont("Amiri", style);
   };
-
-  const displayName = reshapeArabic(customerName);
-  const displayDesc = reshapeArabic(invoice.description);
 
   const centerText = (d: jsPDF, text: string, yPos: number, size: number, style: "normal" | "bold" = "normal") => {
     setFont(d, style, size);
-    const tw = d.getTextWidth(text);
-    d.text(text, (pageWidth - tw) / 2, yPos);
-  };
-
-  const leftText = (d: jsPDF, text: string, yPos: number, size: number, style: "normal" | "bold" = "normal") => {
-    setFont(d, style, size);
-    d.text(text, margin, yPos);
+    const processed = processArabicText(d, text);
+    const tw = d.getTextWidth(processed);
+    d.text(processed, (pageWidth - tw) / 2, yPos);
   };
 
   const rightText = (d: jsPDF, text: string, yPos: number, size: number, style: "normal" | "bold" = "normal") => {
     setFont(d, style, size);
-    const tw = d.getTextWidth(text);
-    d.text(text, pageWidth - margin - tw, yPos);
+    const processed = processArabicText(d, text);
+    const tw = d.getTextWidth(processed);
+    d.text(processed, pageWidth - margin - tw, yPos);
+  };
+
+  const leftText = (d: jsPDF, text: string, yPos: number, size: number, style: "normal" | "bold" = "normal") => {
+    setFont(d, style, size);
+    const processed = processArabicText(d, text);
+    d.text(processed, margin, yPos);
   };
 
   const dashedLine = (d: jsPDF, yPos: number) => {
@@ -115,82 +89,130 @@ export async function generateInvoicePDF(
     d.line(margin, yPos, pageWidth - margin, yPos);
   };
 
-  const formattedAmount = new Intl.NumberFormat("ar-IQ", {
-    style: "currency",
-    currency: "IQD",
-    maximumFractionDigits: 0,
-  }).format(Number(invoice.amount));
+const formattedAmount = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+}).format(Number(invoice.amount)) + " د.ع";
 
-  const status = invoice.paid ? "PAID" : "UNPAID";
+  const statusText = invoice.paid ? "مدفوعة" : "غير مدفوعة";
 
-  const renderContent = (d: jsPDF): number => {
+ const renderContent = (d: jsPDF): number => {
     let y = 4;
 
-    centerText(d, "INVOICE", y, 10, "bold"); y += 5;
+    centerText(d, "فاتورة", y, 10, "bold"); y += 5;
     dashedLine(d, y); y += 4;
 
     centerText(d, invoice.invoice_number, y, 7, "bold"); y += 5;
 
-    leftText(d, "Customer:", y, 6, "bold"); y += 3.5;
-    if (hasArabic(customerName)) {
-      rightText(d, displayName, y, 7, "normal");
-    } else {
-      leftText(d, displayName, y, 7, "normal");
-    }
-    y += 5;
+    // Customer — label and colon separate
+    rightText(d, "الزبون", y, 6, "bold");
+    // Place colon just left of the label
+    setFont(d, "bold", 6);
+    const labelW1 = d.getTextWidth(processArabicText(d, "الزبون"));
+    d.text(":", pageWidth - margin - labelW1 - 1, y);
+    y += 3.5;
+    rightText(d, customerName, y, 7, "normal"); y += 5;
 
     dashedLine(d, y); y += 4;
 
-    leftText(d, "Description:", y, 6, "bold"); y += 3.5;
+    // Description
+    rightText(d, "الوصف", y, 6, "bold");
+    setFont(d, "bold", 6);
+    const labelW2 = d.getTextWidth(processArabicText(d, "الوصف"));
+    d.text(":", pageWidth - margin - labelW2 - 1, y);
+    y += 3.5;
     setFont(d, "normal", 6);
-    const descLines = d.splitTextToSize(displayDesc, contentWidth);
-    d.text(descLines, margin, y);
-    y += descLines.length * 3 + 2;
+    const processedDesc = processArabicText(d, invoice.description);
+    const descLines = d.splitTextToSize(processedDesc, contentWidth);
+    for (const line of descLines) {
+      const tw = d.getTextWidth(line);
+      d.text(line, pageWidth - margin - tw, y);
+      y += 3;
+    }
+    y += 2;
 
-    leftText(d, "Date:", y, 6, "bold");
-    rightText(d, invoice.created_at.split(" ")[0], y, 6, "normal"); y += 4;
+    // Date
+    rightText(d, "التاريخ", y, 6, "bold");
+    setFont(d, "bold", 6);
+    const labelW3 = d.getTextWidth(processArabicText(d, "التاريخ"));
+    d.text(":", pageWidth - margin - labelW3 - 1, y);
+    leftText(d, invoice.created_at.split(" ")[0], y, 6, "normal"); y += 4;
 
-    leftText(d, "Due Date:", y, 6, "bold");
-    rightText(d, invoice.due_date.split(" ")[0], y, 6, "normal"); y += 4;
+    // Due Date
+    rightText(d, "تاريخ الاستحقاق", y, 6, "bold");
+    setFont(d, "bold", 6);
+    const labelW4 = d.getTextWidth(processArabicText(d, "تاريخ الاستحقاق"));
+    d.text(":", pageWidth - margin - labelW4 - 1, y);
+    leftText(d, invoice.due_date.split(" ")[0], y, 6, "normal"); y += 4;
 
-    leftText(d, "Type:", y, 6, "bold");
-    rightText(d, invoice.type.toUpperCase(), y, 6, "normal"); y += 4;
+    // Type
+    rightText(d, "النوع", y, 6, "bold");
+    setFont(d, "bold", 6);
+    const labelW5 = d.getTextWidth(processArabicText(d, "النوع"));
+    d.text(":", pageWidth - margin - labelW5 - 1, y);
+    leftText(d, invoice.type.toUpperCase(), y, 6, "normal"); y += 4;
 
+    // Payment method
     if (invoice.payment_method) {
-      leftText(d, "Payment:", y, 6, "bold");
-      rightText(d, invoice.payment_method, y, 6, "normal"); y += 4;
+      rightText(d, "طريقة الدفع", y, 6, "bold");
+      setFont(d, "bold", 6);
+      const labelW6 = d.getTextWidth(processArabicText(d, "طريقة الدفع"));
+      d.text(":", pageWidth - margin - labelW6 - 1, y);
+      leftText(d, invoice.payment_method, y, 6, "normal"); y += 4;
     }
 
     y += 1; dashedLine(d, y); y += 5;
 
-    centerText(d, "TOTAL", y, 6, "bold"); y += 4;
-    centerText(d, formattedAmount, y, 10, "bold"); y += 5;
-    centerText(d, status, y, 8, "bold"); y += 5;
+    // Total
+    centerText(d, "المجموع", y, 6, "bold"); y += 4;
+
+    // Amount — don't process through Arabic, render as-is centered
+    setFont(d, "bold", 10);
+    const amountW = d.getTextWidth(formattedAmount);
+    d.text(formattedAmount, (pageWidth - amountW) / 2, y);
+    y += 5;
+
+    // Status
+    centerText(d, statusText, y, 8, "bold"); y += 5;
 
     dashedLine(d, y); y += 4;
-    centerText(d, "Thank you!", y, 6, "normal"); y += 3;
-    centerText(d, invoice.created_at.split(" ")[1] || "", y, 5, "normal");
+    centerText(d, "شكراً لكم", y, 6, "normal"); y += 3;
+
+    // Time — plain text, no Arabic processing
+    setFont(d, "normal", 5);
+    const timeStr = invoice.created_at.split(" ")[1] || "";
+    const timeW = d.getTextWidth(timeStr);
+    d.text(timeStr, (pageWidth - timeW) / 2, y);
 
     return y;
   };
 
-  const finalY = renderContent(doc);
+  // First pass — measure
+  const measureDoc = new jsPDF({ orientation: "portrait", unit: "mm", format: [pageWidth, 120] });
+  await loadArabicFont(measureDoc);
+  const finalY = renderContent(measureDoc);
 
+  // Second pass — trimmed page
   const trimmedDoc = new jsPDF({ orientation: "portrait", unit: "mm", format: [pageWidth, finalY + 4] });
-  if (needsArabic) {
-    await loadArabicSupport(trimmedDoc);
-  }
+  await loadArabicFont(trimmedDoc);
   renderContent(trimmedDoc);
 
+    // Output
   if (action === "print") {
-    const pdfBlob = trimmedDoc.output("blob");
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    const printWindow = window.open(pdfUrl, "_blank");
-    if (printWindow) {
-      printWindow.addEventListener("load", () => {
-        printWindow.print();
-      });
-    }
+ const pdfDataUri = trimmedDoc.output("datauristring");
+    
+    let iframe = document.getElementById("invoice-print-frame") as HTMLIFrameElement | null;
+    if (iframe) iframe.remove();
+    
+    iframe = document.createElement("iframe");
+    iframe.id = "invoice-print-frame";
+    iframe.style.display = "none";
+    iframe.src = pdfDataUri;
+    document.body.appendChild(iframe);
+
+    iframe.onload = () => {
+      iframe!.contentWindow?.focus();
+      iframe!.contentWindow?.print();
+    };
   } else {
     trimmedDoc.save(`invoice-${invoice.invoice_number}.pdf`);
   }

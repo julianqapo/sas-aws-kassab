@@ -230,13 +230,13 @@ export default function InvoicesModal({ username, firstname, lastname, onClose }
                         </div>
 
                         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                          <button
+                          {/* <button
                             onClick={() => handlePrint(inv)}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide text-gray-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
                           >
                             <Printer className="w-3.5 h-3.5" />
                             Print
-                          </button>
+                          </button> */}
 
                           <button
                             onClick={() => handleDownload(inv)}
