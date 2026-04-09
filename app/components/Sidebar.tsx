@@ -24,9 +24,9 @@ const menuItems = [
   // { icon: Home, label: "Dashboard", path: "/dashboard" },
   // { icon: BarChart, label: "Analytics", path: "/analytics" },
   { icon: Users, label: "Users", path: "/users" },
-  { icon: UserCog, label: "Staff", path: "/staff" },
+  { icon: FileText, label: "Activate Users", path: "/activateUsers" },
   { icon: Wifi, label: "Cards", path: "/cards" },
-  // { icon: FileText, label: "Documents", path: "/documents" },
+  { icon: UserCog, label: "Staff", path: "/staff" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
