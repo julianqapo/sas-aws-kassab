@@ -284,7 +284,7 @@ export default function UsersPage() {
                         <TableRow key={user.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/30 transition-colors">
                           {visibleColumns.includes("username") && (
                             <TableCell className="font-bold">
-                              <Link href={`/users/${user.username}`} className="text-orange-600 hover:underline">
+                              <Link href={`/activateUsers/${user.username}`} className="text-orange-600 hover:underline">
                                 {user.username}
                               </Link>
                             </TableCell>

@@ -165,7 +165,7 @@ export default function ActivateUsersPage() {
                       {users.map((user) => (
                         <TableRow key={user.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/30 transition-colors">
                           <TableCell className="font-bold">
-                            <Link href={`/users/${user.username}`} className="text-orange-600 hover:text-orange-700">
+                            <Link href={`/activateUsers/${user.username}`} className="text-orange-600 hover:text-orange-700">
                               {user.username}
                             </Link>
                           </TableCell>

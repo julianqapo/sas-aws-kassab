@@ -387,3 +387,74 @@ export async function getUserInvoices(
     };
   }
 }
+
+
+
+// test starts here
+// ########################################################
+// extend subscription for a client 
+/**
+ * extend a subscription for a specific user.
+ * @param username The username (used to retrieve the Bearer token)
+ * @param pin The card PIN to redeem
+ */
+export async function extendSubscription(username: string) {
+  try {
+    // 1. Get the Bearer Token for this user
+    const token = await getSmartToken(username);
+    
+    const secretKey = process.env.SECRET_KEY;
+    const baseUrl = process.env.BASE_URL;
+    
+    if (!secretKey || !baseUrl) {
+      throw new Error("Server environment variables (SECRET_KEY or BASE_URL) are missing.");
+    }
+
+    const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+
+    // 2. Prepare and Encrypt the Payload
+    const rawData = JSON.stringify({ profile_id: "5", current_passoword : true });
+    const encryptedText = CryptoJS.AES.encrypt(rawData, secretKey).toString();
+    
+    // 3. Format as URLSearchParams (application/x-www-form-urlencoded)
+    const formData = new URLSearchParams();
+    formData.append('payload', encryptedText);
+
+    // 4. Execute the POST request to /api/redeem
+    const response = await fetch(`${cleanBaseUrl}/user/api/index.php/api/user/extend`, {
+      method: "POST",
+      headers: { 
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json"
+      },
+      body: formData.toString(),
+      cache: 'no-store'
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || result.success === false) {
+      return { 
+        success: false, 
+        error: result.error || result.message || "Failed to extend subscription." 
+      };
+    }
+
+    return { 
+      success: true, 
+      data: result 
+    };
+
+  } catch (error: any) {
+    console.error("Extend Error:", error);
+    return { 
+      success: false, 
+      error: error.message || "An unexpected error occurred during extending." 
+    };
+  }
+}
+
+
+
+// test ends here

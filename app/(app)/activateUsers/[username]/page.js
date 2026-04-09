@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { loginUser } from "./db_service";
 import AssignSeriesModal from "./subscriptionModal";
 import InvoicesModal from "./InvoicesModal";
+// Import the new modal
+import ExtendModal from "./ExtendModal";
 import {
   Card,
   CardContent,
@@ -20,10 +22,10 @@ import {
   Activity,
   Clock,
   ShieldAlert,
-  CheckCircle2,
   Loader2,
   PlusCircle,
   Receipt,
+  RefreshCcw, // Added for the Extend icon
 } from "lucide-react";
 
 export default function SubscriberDashboard() {
@@ -35,6 +37,8 @@ export default function SubscriberDashboard() {
   const [error, setError] = useState(null);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  // 1. Add state for the Extend Modal
+  const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
 
   useEffect(() => {
     if (!username) return;
@@ -57,6 +61,8 @@ export default function SubscriberDashboard() {
     }
     fetchSubscriberData();
   }, [username]);
+
+  // ... (formatCurrency and formatDate functions remain same)
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("ar-IQ", {
@@ -112,7 +118,18 @@ export default function SubscriberDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6 animate-in fade-in duration-500">
-      {/* Modals */}
+      {/* 2. Render the Extend Modal */}
+      <ExtendModal
+        username={u.username || username}
+        isOpen={isExtendModalOpen}
+        onClose={() => setIsExtendModalOpen(false)}
+        onSuccess={(result) => {
+          console.log("Success:", result);
+          // Optional: Refresh data here to show new expiration date
+          window.location.reload();
+        }}
+      />
+
       {isAssignModalOpen && (
         <AssignSeriesModal
           username={u.username || username}
@@ -159,12 +176,22 @@ export default function SubscriberDashboard() {
             Billing History
           </Button>
 
+          {/* 3. Added Extend Button */}
+          <Button
+            variant="outline"
+            onClick={() => setIsExtendModalOpen(true)}
+            className="rounded-xl font-bold text-xs uppercase h-11 px-5 border-blue-200 text-blue-600 dark:border-blue-900 hover:bg-blue-50 active:scale-95 transition-transform"
+          >
+            <RefreshCcw className="w-4 h-4 mr-2" />
+            Extend
+          </Button>
+
           <Button
             onClick={() => setIsAssignModalOpen(true)}
             className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-xs uppercase h-11 px-5 shadow-lg shadow-orange-500/20 active:scale-95 transition-transform"
           >
             <PlusCircle className="w-4 h-4 mr-2" />
-            Assign Series
+            Activate
           </Button>
 
           <div
@@ -181,6 +208,8 @@ export default function SubscriberDashboard() {
           </div>
         </div>
       </div>
+
+      {/* ... (rest of the stats and info grid code remains the same) */}
 
       {/* Quick Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
