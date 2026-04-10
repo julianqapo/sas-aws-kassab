@@ -58,7 +58,7 @@ const ALL_COLUMNS = [
   { id: "traffic", label: "Traffic" },
   { id: "balance", label: "Balance" },
   { id: "created_at", label: "Created At" },
-  { id: "debt_days", label: "Debt Days" },
+  { id: "loan_balance", label: "Debt" },
   { id: "phone", label: "Phone" },
   { id: "parent_username", label: "Parent Username" },
 ];
@@ -92,7 +92,7 @@ export default function UsersPage() {
     setLoading(true);
     try {
       const result = (await getUsers(page, pageSize, searchQuery)) as any;
-      // console.log(result.data.data[0])
+      console.log(result.data.data)
       if (!result.success || !result.data || !Array.isArray(result.data.data)) {
         throw new Error(result.error || "Failed to load users");
       }
@@ -333,10 +333,10 @@ export default function UsersPage() {
                           {visibleColumns.includes("created_at") && (
                             <TableCell className="text-[10px] text-gray-500 font-medium">{user.created_at || "—"}</TableCell>
                           )}
-                          {visibleColumns.includes("debt_days") && (
+                          {visibleColumns.includes("loan_balance") && (
                             <TableCell>
-                              <span className={`font-black text-xs ${user.debt_days > 0 ? "text-red-600" : "text-gray-400"}`}>
-                                {user.debt_days}
+                              <span className={`font-black text-xs ${user.loan_balance > 0 ? "text-red-600" : "text-gray-400"}`}>
+                                {user.loan_balance}
                               </span>
                             </TableCell>
                           )}
