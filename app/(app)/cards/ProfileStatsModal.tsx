@@ -1,7 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { getProfileStats } from "./db_service"; // Adjust path
+import { motion } from "motion/react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../../components/ui/dialog";
+import { Button } from "../../components/ui/button";
+import { BarChart3, Loader2 } from "lucide-react";
+import { getProfileStats } from "./db_service";
 
 interface ProfileStat {
   profile_name: string;
@@ -18,9 +29,7 @@ export default function ProfileStatsModal() {
     setLoading(true);
     try {
       const data = await getProfileStats();
-      console.log("Fetched Profile Stats:", data); // Debug log
-      // Sort by highest quantity left
-      setStats(data.sort((a, b) => b.quantity_left - a.quantity_left));
+      setStats(data.sort((a: ProfileStat, b: ProfileStat) => b.quantity_left - a.quantity_left));
     } catch (err) {
       console.error(err);
     } finally {
@@ -28,76 +37,72 @@ export default function ProfileStatsModal() {
     }
   };
 
-  if (!isOpen) {
-    return (
-      <button
-        onClick={handleOpen}
-        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm text-sm font-medium"
-      >
-        View Profile Inventory
-      </button>
-    );
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-          <h2 className="text-xl font-bold text-gray-800">Inventory by Profile</h2>
-          <button 
-            onClick={() => setIsOpen(false)}
-            className="text-gray-400 hover:text-gray-600 p-1"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <>
+      <Button
+        onClick={handleOpen}
+        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 h-11 px-5 rounded-xl font-bold text-xs uppercase shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 gap-2 transition-all duration-300 active:scale-[0.97]"
+      >
+        <BarChart3 className="w-4 h-4" />
+        View Profile Inventory
+      </Button>
 
-        {/* Content */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
-          {loading ? (
-            <div className="flex flex-col items-center py-10 space-y-4">
-              <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-              <p className="text-gray-500 text-sm">Calculating inventory totals...</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {stats.map((stat) => (
-                <div 
-                  key={stat.profile_name} 
-                  className="flex justify-between items-center p-4 rounded-lg border border-gray-100 bg-gray-50 hover:border-blue-200 transition-colors"
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-orange-600" />
+              Inventory by Profile
+            </DialogTitle>
+            <DialogDescription>Current stock levels per profile type.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full border-4 border-orange-100 dark:border-orange-900/30" />
+                  <div className="w-12 h-12 rounded-full border-4 border-transparent border-t-orange-500 animate-spin absolute inset-0" />
+                </div>
+                <span className="text-sm text-gray-400 font-medium animate-pulse">Calculating inventory...</span>
+              </div>
+            ) : stats.length === 0 ? (
+              <div className="text-center py-12 text-gray-400 font-medium">No data found.</div>
+            ) : (
+              stats.map((stat, i) => (
+                <motion.div
+                  key={stat.profile_name}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.03, duration: 0.2 }}
+                  whileHover={{ x: 4 }}
+                  className="flex justify-between items-center p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-orange-200 dark:hover:border-orange-800 bg-gray-50/50 dark:bg-gray-900/50 transition-colors duration-200 group"
                 >
                   <div>
-                    <p className="text-xs font-bold text-blue-600 uppercase tracking-tight">Profile Name</p>
-                    <p className="text-gray-900 font-semibold">{stat.profile_name}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Profile</p>
+                    <p className="font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition-colors duration-200">
+                      {stat.profile_name}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-tight">Qty Left</p>
-                    <p className={`text-xl font-mono font-bold ${stat.quantity_left > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Qty Left</p>
+                    <p className={`text-xl font-mono font-black ${stat.quantity_left > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                       {stat.quantity_left.toLocaleString()}
                     </p>
                   </div>
-                </div>
-              ))}
-              {stats.length === 0 && (
-                <p className="text-center text-gray-500 py-4">No data found.</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
-          <button
-            onClick={() => setIsOpen(false)}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
+                </motion.div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => setIsOpen(false)}
+              className="w-full rounded-xl bg-gradient-to-r from-gray-900 to-gray-800 text-white font-bold h-11 hover:from-gray-800 hover:to-gray-700 transition-all duration-300 active:scale-[0.98]"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

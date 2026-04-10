@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -13,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck, UserPlus, CheckSquare, Square } from "lucide-react";
 import { toast } from "sonner";
 import { manageStaffAndPermissions } from "./db_service";
 import { StaffMember, Permission } from "./page";
@@ -23,7 +24,7 @@ interface StaffModalProps {
   onClose: () => void;
   editing: StaffMember | null;
   allPermissions: Permission[];
-  onSuccess: () => void; // Triggered to refresh the parent table
+  onSuccess: () => void;
 }
 
 export default function StaffModal({
@@ -35,13 +36,11 @@ export default function StaffModal({
 }: StaffModalProps) {
   const [saving, setSaving] = useState(false);
 
-  // Form state
   const [formEmail, setFormEmail] = useState("");
   const [formFullName, setFormFullName] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
   const [formPermissions, setFormPermissions] = useState<Set<number>>(new Set());
 
-  // Reset or populate form when modal opens or editing target changes
   useEffect(() => {
     if (isOpen) {
       if (editing) {
@@ -61,11 +60,8 @@ export default function StaffModal({
   const togglePermission = (id: number) => {
     setFormPermissions((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -96,9 +92,14 @@ export default function StaffModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] rounded-2xl">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {editing ? (
+              <ShieldCheck className="w-5 h-5 text-orange-600" />
+            ) : (
+              <UserPlus className="w-5 h-5 text-orange-600" />
+            )}
             {editing ? "Edit Staff Member" : "Add Staff Member"}
           </DialogTitle>
           <DialogDescription>
@@ -111,7 +112,9 @@ export default function StaffModal({
         <form onSubmit={handleSave}>
           <div className="space-y-5 py-4">
             <div className="space-y-2">
-              <Label htmlFor="staff-email">Email</Label>
+              <Label htmlFor="staff-email" className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                Email
+              </Label>
               <Input
                 id="staff-email"
                 type="email"
@@ -119,11 +122,14 @@ export default function StaffModal({
                 value={formEmail}
                 onChange={(e) => setFormEmail(e.target.value)}
                 required
+                className="h-11 rounded-xl border-gray-200 dark:border-gray-800 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300"
               />
             </div>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="staff-name">Full Name</Label>
+              <Label htmlFor="staff-name" className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                Full Name
+              </Label>
               <Input
                 id="staff-name"
                 type="text"
@@ -131,13 +137,17 @@ export default function StaffModal({
                 value={formFullName}
                 onChange={(e) => setFormFullName(e.target.value)}
                 required
+                className="h-11 rounded-xl border-gray-200 dark:border-gray-800 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300"
               />
             </div>
 
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-4">
-              <Label htmlFor="staff-active" className="text-base">
-                Active Account
-              </Label>
+            <div className="flex items-center justify-between border border-gray-100 dark:border-gray-800 rounded-xl p-4">
+              <div>
+                <Label htmlFor="staff-active" className="text-sm font-bold text-gray-900 dark:text-white cursor-pointer">
+                  Active Account
+                </Label>
+                <p className="text-[10px] text-gray-400 mt-0.5">Allow this member to access the system</p>
+              </div>
               <Switch
                 id="staff-active"
                 checked={formIsActive}
@@ -145,26 +155,32 @@ export default function StaffModal({
               />
             </div>
 
-            {/* Toggle Buttons for Permissions */}
             {allPermissions.length > 0 && (
               <div className="space-y-3">
-                <Label className="text-base">Permissions</Label>
-                <div className="flex flex-wrap gap-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                  Permissions
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
                   {allPermissions.map((perm) => {
                     const isActive = formPermissions.has(perm.id);
                     return (
-                      <button
+                      <motion.div
                         key={perm.id}
-                        type="button"
+                        whileTap={{ scale: 0.96 }}
                         onClick={() => togglePermission(perm.id)}
-                        className={`px-4 py-2 text-sm font-medium rounded-md border transition-colors ${
+                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-200 select-none ${
                           isActive
-                            ? "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/40 dark:text-orange-400 dark:border-orange-800 hover:bg-orange-200 dark:hover:bg-orange-900/60"
-                            : "bg-white text-gray-700 border-gray-300 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            ? "border-orange-300 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/30 shadow-sm"
+                            : "border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800"
                         }`}
                       >
-                        {perm.name}
-                      </button>
+                        <div className={`transition-colors duration-200 ${isActive ? "text-orange-600" : "text-gray-300"}`}>
+                          {isActive ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+                        </div>
+                        <span className={`text-sm font-bold transition-colors duration-200 ${isActive ? "text-gray-900 dark:text-white" : "text-gray-400"}`}>
+                          {perm.name}
+                        </span>
+                      </motion.div>
                     );
                   })}
                 </div>
@@ -172,16 +188,21 @@ export default function StaffModal({
             )}
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="rounded-xl border-gray-200 dark:border-gray-800 font-bold text-xs uppercase h-11 hover:border-orange-300 transition-all duration-200"
+            >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={saving}
-              className="bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600 text-white"
+              className="rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-xs uppercase h-11 px-6 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 gap-2 transition-all duration-300 active:scale-[0.97]"
             >
-              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {saving ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>

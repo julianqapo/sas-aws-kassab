@@ -76,7 +76,7 @@ const containerVariants = {
 
 const rowVariants = {
   hidden: { opacity: 0, x: -8 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.25, ease: "easeOut" } },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.25, ease: "easeOut" as const} },
 };
 
 export default function UsersPage() {
@@ -414,7 +414,7 @@ export default function UsersPage() {
                             return (
                               <motion.tr
                                 key={user.id}
-                                // variants={rowVariants}
+                                variants={rowVariants}
                                 onClick={() => handleRowClick(user.username)}
                                 whileHover={{
                                   scale: 1.015,
