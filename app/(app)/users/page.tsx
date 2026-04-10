@@ -31,15 +31,14 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Loader2,
   CalendarClock,
   CheckSquare,
   Square,
   Settings2,
   Filter,
-  ListOrdered
+  ListOrdered,
+  Hourglass
 } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "../../components/ui/sonner";
@@ -55,6 +54,7 @@ const ALL_COLUMNS = [
   { id: "profile", label: "Profile" },
   { id: "last_online", label: "Last Online" },
   { id: "expiration", label: "Expiration" },
+  { id: "remaining_days", label: "Remaining Days" },
   { id: "traffic", label: "Traffic" },
   { id: "balance", label: "Balance" },
   { id: "created_at", label: "Created At" },
@@ -79,7 +79,7 @@ export default function UsersPage() {
 
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
-    "username", "firstname", "profile", "last_online", "expiration", "traffic"
+    "username", "firstname", "profile", "last_online", "expiration", "remaining_days", "traffic"
   ]);
 
   const toggleColumn = (id: string) => {
@@ -92,7 +92,6 @@ export default function UsersPage() {
     setLoading(true);
     try {
       const result = (await getUsers(page, pageSize, searchQuery)) as any;
-      console.log(result.data.data)
       if (!result.success || !result.data || !Array.isArray(result.data.data)) {
         throw new Error(result.error || "Failed to load users");
       }
@@ -131,28 +130,45 @@ export default function UsersPage() {
     return `${gb.toFixed(2)} GB`;
   };
 
-  const getExpirationStyles = (expirationDate: string | null) => {
-    if (!expirationDate || expirationDate === "—") return "text-gray-600 dark:text-gray-400";
+  // Logic 1: Clamp remaining days to 0 if negative
+  const calculateRemainingDays = (expirationDate: string | null) => {
+    if (!expirationDate || expirationDate === "—") return null;
     const now = new Date();
     const exp = new Date(expirationDate.replace(" ", "T"));
     const diffTime = exp.getTime() - now.getTime();
-    const diffDays = diffTime / (1000 * 60 * 60 * 24);
-
-    if (diffDays < 0) return "text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded"; 
-    if (diffDays <= 7) return "text-yellow-600 dark:text-yellow-500 font-semibold bg-yellow-50 dark:bg-yellow-900/20 px-2 py-1 rounded";
-    return "text-green-600 dark:text-green-400 font-medium";
+    const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return days < 0 ? 0 : days; // Return 0 instead of negative
   };
 
-  // Logic to generate page range (Current +/- 3)
-  const getPageRange = () => {
-    const range = [];
-    const start = Math.max(1, page - 3);
-    const end = Math.min(totalPages, page + 3);
-
-    for (let i = start; i <= end; i++) {
-      range.push(i);
+  // Logic 2: Apply styles to the entire row
+  const getRowStyles = (expirationDate: string | null) => {
+    if (!expirationDate || expirationDate === "—") return "";
+    const remaining = calculateRemainingDays(expirationDate);
+    
+    if (remaining === null) return "";
+    if (remaining === 0) {
+      return "bg-red-200/80 dark:bg-red-900/10 hover:bg-red-300 dark:hover:bg-red-900/20 transition-colors"; 
+    } else if (remaining <= 7) {
+      return "bg-yellow-200/80 dark:bg-yellow-900/10 hover:bg-yellow-300 dark:hover:bg-yellow-900/20 transition-colors";
     }
-    return range;
+    return "hover:bg-gray-200 dark:hover:bg-gray-900/30 transition-colors";
+  };
+
+  const getPaginationItems = () => {
+    const items: (number | string)[] = [];
+    const maxVisible = 3;
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) items.push(i);
+    } else {
+      items.push(1);
+      if (page > maxVisible + 2) items.push("...");
+      const start = Math.max(2, page - maxVisible);
+      const end = Math.min(totalPages - 1, page + maxVisible);
+      for (let i = start; i <= end; i++) items.push(i);
+      if (page < totalPages - (maxVisible + 1)) items.push("...");
+      items.push(totalPages);
+    }
+    return items;
   };
 
   return (
@@ -220,9 +236,7 @@ export default function UsersPage() {
                 <Settings2 className="w-5 h-5 text-orange-600" />
                 Customize View
               </DialogTitle>
-              <DialogDescription>
-                Select which data fields you want to see in the table.
-              </DialogDescription>
+              <DialogDescription>Select the data fields to show in the table.</DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-4 py-4">
               {ALL_COLUMNS.map((col) => (
@@ -234,16 +248,12 @@ export default function UsersPage() {
                   <div className={visibleColumns.includes(col.id) ? "text-orange-600" : "text-gray-300"}>
                     {visibleColumns.includes(col.id) ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
                   </div>
-                  <span className={`text-sm font-bold ${visibleColumns.includes(col.id) ? "text-gray-900 dark:text-white" : "text-gray-400"}`}>
-                    {col.label}
-                  </span>
+                  <span className={`text-sm font-bold ${visibleColumns.includes(col.id) ? "text-gray-900 dark:text-white" : "text-gray-400"}`}>{col.label}</span>
                 </div>
               ))}
             </div>
             <DialogFooter>
-              <Button onClick={() => setIsColumnModalOpen(false)} className="w-full rounded-xl bg-gray-900 text-white font-bold h-11">
-                Save Layout
-              </Button>
+              <Button onClick={() => setIsColumnModalOpen(false)} className="w-full rounded-xl bg-gray-900 text-white font-bold h-11">Save Layout</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -252,11 +262,7 @@ export default function UsersPage() {
         <Card className="shadow-md border-gray-200 dark:border-gray-800 overflow-hidden">
           <CardHeader className="border-b border-gray-50 dark:border-gray-800 flex flex-row items-center justify-between">
             <CardTitle className="text-gray-900 dark:text-white">User List</CardTitle>
-            {!loading && (
-              <span className="text-xs font-black uppercase tracking-widest bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full text-gray-500">
-                {total} Records
-              </span>
-            )}
+            {!loading && <span className="text-xs font-black uppercase bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full text-gray-500">{total} Records</span>}
           </CardHeader>
           <CardContent className="pt-6">
             {loading ? (
@@ -264,8 +270,6 @@ export default function UsersPage() {
                 <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
                 <span className="text-sm text-gray-500">Updating directory...</span>
               </div>
-            ) : users.length === 0 ? (
-              <div className="text-center py-20 text-gray-500 italic">No matching users found.</div>
             ) : (
               <>
                 <div className="overflow-x-auto custom-scrollbar">
@@ -273,155 +277,83 @@ export default function UsersPage() {
                     <TableHeader>
                       <TableRow className="bg-gray-50/50 dark:bg-gray-900/50">
                         {ALL_COLUMNS.filter(c => visibleColumns.includes(c.id)).map(col => (
-                          <TableHead key={col.id} className="font-black text-[10px] uppercase tracking-wider text-gray-500">
-                            {col.label}
-                          </TableHead>
+                          <TableHead key={col.id} className="font-black text-[10px] uppercase tracking-wider text-gray-500">{col.label}</TableHead>
                         ))}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users.map((user: any) => (
-                        <TableRow key={user.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/30 transition-colors">
-                          {visibleColumns.includes("username") && (
-                            <TableCell className="font-bold">
-                              <Link href={`/activateUsers/${user.username}`} className="text-orange-600 hover:underline">
-                                {user.username}
-                              </Link>
-                            </TableCell>
-                          )}
-                          {visibleColumns.includes("firstname") && <TableCell>{user.firstname || "—"}</TableCell>}
-                          {visibleColumns.includes("lastname") && <TableCell>{user.lastname || "—"}</TableCell>}
-                          {visibleColumns.includes("profile") && (
-                            <TableCell>
-                              <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-[10px] font-black uppercase tracking-wider">
-                                {user.profile_details?.name || "—"}
-                              </span>
-                            </TableCell>
-                          )}
-                          {visibleColumns.includes("last_online") && (
-                            <TableCell>
-                              <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase ${user.enabled ? "bg-green-100 text-green-700 dark:bg-green-900/40" : "bg-red-100 text-red-700 dark:bg-red-900/40"}`}>
-                                {user.last_online || "Never"}
-                              </span>
-                            </TableCell>
-                          )}
-                          {visibleColumns.includes("expiration") && (
-                            <TableCell className={getExpirationStyles(user.expiration)}>
-                              <div className="flex items-center gap-1.5 whitespace-nowrap text-xs font-bold">
-                                {user.expiration && <CalendarClock className="w-3.5 h-3.5" />}
-                                {user.expiration || "—"}
-                              </div>
-                            </TableCell>
-                          )}
-                          {visibleColumns.includes("traffic") && (
-                            <TableCell className="text-gray-600 dark:text-gray-400 font-mono text-xs">
-                              {user.daily_traffic_details?.traffic ? (
-                                <>
-                                  <span className="font-bold text-gray-900 dark:text-white">
-                                    {formatTraffic(user.daily_traffic_details.traffic).split(' ')[0]}
-                                  </span>
-                                  <span className="text-[9px] ml-1 opacity-60">GB</span>
-                                </>
-                              ) : "—"}
-                            </TableCell>
-                          )}
-                          {visibleColumns.includes("balance") && (
-                            <TableCell className="font-mono font-black text-gray-900 dark:text-gray-100 text-xs">
-                              {Number(user.balance).toLocaleString()}
-                            </TableCell>
-                          )}
-                          {visibleColumns.includes("created_at") && (
-                            <TableCell className="text-[10px] text-gray-500 font-medium">{user.created_at || "—"}</TableCell>
-                          )}
-                          {visibleColumns.includes("loan_balance") && (
-                            <TableCell>
-                              <span className={`font-black text-xs ${user.loan_balance > 0 ? "text-red-600" : "text-gray-400"}`}>
-                                {user.loan_balance}
-                              </span>
-                            </TableCell>
-                          )}
-                          {visibleColumns.includes("phone") && <TableCell className="text-xs font-medium">{user.phone || "—"}</TableCell>}
-                          {visibleColumns.includes("parent_username") && (
-                            <TableCell className="text-xs text-purple-600 font-bold uppercase tracking-tighter">
-                              @{user.parent_username || "System"}
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      ))}
+                      {users.map((user: any) => {
+                        const remaining = calculateRemainingDays(user.expiration);
+                        // Row styling applied here
+                        return (
+                          <TableRow key={user.id} className={getRowStyles(user.expiration)}>
+                            {visibleColumns.includes("username") && (
+                              <TableCell className="font-bold">
+                                <Link href={`/activateUsers/${user.username}`} className="text-orange-600 hover:underline">{user.username}</Link>
+                              </TableCell>
+                            )}
+                            {visibleColumns.includes("firstname") && <TableCell>{user.firstname || "—"}</TableCell>}
+                            {visibleColumns.includes("lastname") && <TableCell>{user.lastname || "—"}</TableCell>}
+                            {visibleColumns.includes("profile") && (
+                              <TableCell>
+                                <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-[10px] font-black uppercase tracking-wider">{user.profile_details?.name || "—"}</span>
+                              </TableCell>
+                            )}
+                            {visibleColumns.includes("last_online") && (
+                              <TableCell>
+                                <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase ${user.enabled ? "bg-green-100 text-green-700 dark:bg-green-900/40" : "bg-red-100 text-red-700 dark:bg-red-900/40"}`}>{user.last_online || "Never"}</span>
+                              </TableCell>
+                            )}
+                            {visibleColumns.includes("expiration") && (
+                              <TableCell>
+                                <div className={`flex items-center gap-1.5 whitespace-nowrap text-xs font-black ${remaining === 0 ? "text-red-600" : remaining && remaining <= 7 ? "text-yellow-700" : "text-gray-700"}`}>
+                                  {user.expiration && <CalendarClock className="w-3.5 h-3.5" />}
+                                  {user.expiration || "—"}
+                                </div>
+                              </TableCell>
+                            )}
+                            {visibleColumns.includes("remaining_days") && (
+                              <TableCell>
+                                <div className={`flex items-center gap-1.5 font-black text-xs ${remaining === 0 ? "text-red-600" : remaining && remaining <= 7 ? "text-yellow-700" : "text-gray-700"}`}>
+                                  <Hourglass className="w-3.5 h-3.5 opacity-70" />
+                                  {remaining !== null ? `${remaining} d` : "—"}
+                                </div>
+                              </TableCell>
+                            )}
+                            {visibleColumns.includes("traffic") && (
+                              <TableCell className="text-gray-600 dark:text-gray-400 font-mono text-xs">
+                                {user.daily_traffic_details?.traffic ? (
+                                  <><span className="font-bold text-gray-900 dark:text-white">{formatTraffic(user.daily_traffic_details.traffic).split(' ')[0]}</span><span className="text-[9px] ml-1 opacity-60">GB</span></>
+                                ) : "—"}
+                              </TableCell>
+                            )}
+                            {visibleColumns.includes("balance") && <TableCell className="font-mono font-black text-xs">{Number(user.balance).toLocaleString()}</TableCell>}
+                            {visibleColumns.includes("created_at") && <TableCell className="text-[10px] text-gray-500 font-medium">{user.created_at || "—"}</TableCell>}
+                            {visibleColumns.includes("loan_balance") && <TableCell><span className={`font-black text-xs ${user.loan_balance > 0 ? "text-red-600" : "text-gray-400"}`}>{user.loan_balance}</span></TableCell>}
+                            {visibleColumns.includes("phone") && <TableCell className="text-xs font-medium">{user.phone || "—"}</TableCell>}
+                            {visibleColumns.includes("parent_username") && <TableCell className="text-xs text-purple-600 font-bold uppercase tracking-tighter">@{user.parent_username || "System"}</TableCell>}
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
 
-                {/* --- ADVANCED PAGINATION --- */}
+                {/* Pagination */}
                 <div className="flex flex-col sm:flex-row items-center justify-between mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 gap-4">
-                  <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
-                    Showing {from} - {to} of {total}
-                  </p>
-                  
+                  <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Showing {from} - {to} of {total}</p>
                   <div className="flex items-center gap-1">
-                    {/* First Page */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(1)}
-                      disabled={page === 1 || loading}
-                      className="h-9 px-4 py-2 rounded-lg hidden sm:flex"
-                    >
-                      {/* <ChevronsLeft className="w-4 h-4" /> */}
-                      First
-                    </Button>
-
-                    {/* Previous Page */}
-                    {/* <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1 || loading}
-                      className="h-9 w-9 p-0 rounded-lg"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button> */}
-
-                    {/* Dynamic Range Buttons */}
-                    {getPageRange().map((p) => (
-                      <Button
-                        key={p}
-                        variant={p === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setPage(p)}
-                        disabled={loading}
-                        className={`h-9 w-9 p-0 rounded-lg text-xs font-black transition-all ${
-                          p === page 
-                            ? "bg-orange-600 hover:bg-orange-700 text-white border-orange-600" 
-                            : "hover:border-orange-200"
-                        }`}
-                      >
-                        {p}
-                      </Button>
-                    ))}
-
-                    {/* Next Page */}
-                    {/* <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages || loading}
-                      className="h-9 w-9 p-0 rounded-lg"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button> */}
-
-                    {/* Last Page */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(totalPages)}
-                      disabled={page === totalPages || loading}
-                      className="h-9  px-4 py-2 rounded-lg hidden sm:flex"
-                    >
-                      Last
-                      {/* <ChevronsRight className="w-4 h-4" /> */}
-                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setPage(1)} disabled={page === 1 || loading} className="h-9 px-4 py-2 rounded-lg hidden sm:flex font-bold text-xs uppercase">First</Button>
+                    <div className="flex items-center gap-1">
+                      {getPaginationItems().map((p, idx) => (
+                        typeof p === "number" ? (
+                          <Button key={idx} variant={p === page ? "default" : "outline"} size="sm" onClick={() => setPage(p)} disabled={loading} className={`h-9 w-9 p-0 rounded-lg text-xs font-black transition-all ${p === page ? "bg-orange-600 hover:bg-orange-700 text-white border-orange-600" : "hover:border-orange-200"}`}>{p}</Button>
+                        ) : (
+                          <span key={idx} className="px-2 text-gray-400 font-bold">...</span>
+                        )
+                      ))}
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setPage(totalPages)} disabled={page === totalPages || loading} className="h-9 px-4 py-2 rounded-lg hidden sm:flex font-bold text-xs uppercase">Last</Button>
                   </div>
                 </div>
               </>

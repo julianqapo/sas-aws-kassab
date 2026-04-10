@@ -89,9 +89,13 @@ export async function generateInvoicePDF(
     d.line(margin, yPos, pageWidth - margin, yPos);
   };
 
-const formattedAmount = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 0,
-}).format(Number(invoice.amount)) + " د.ع";
+  // old code for invoice total was not correct 
+// const formattedAmount = new Intl.NumberFormat("en-US", {
+//   maximumFractionDigits: 0,
+// }).format(Number(invoice.amount)) + " د.ع";
+
+// new code
+const formattedAmount = getPriceFromInput(invoice.description);
 
   const statusText = invoice.paid ? "مدفوعة" : "غير مدفوعة";
 
@@ -122,6 +126,7 @@ const formattedAmount = new Intl.NumberFormat("en-US", {
     y += 3.5;
     setFont(d, "normal", 6);
     const processedDesc = processArabicText(d, invoice.description);
+    // const processedDesc = "كوكو"
     const descLines = d.splitTextToSize(processedDesc, contentWidth);
     for (const line of descLines) {
       const tw = d.getTextWidth(line);
@@ -216,4 +221,27 @@ const formattedAmount = new Intl.NumberFormat("en-US", {
   } else {
     trimmedDoc.save(`invoice-${invoice.invoice_number}.pdf`);
   }
+}
+
+
+// sort out the orice for in the invoice
+/**
+ * Maps a profile/service name to its price based on keywords.
+ * @param input The string to check (e.g., "Service: nova-60")
+ * @returns The formatted price string or "Price Not Found"
+ */
+export function getPriceFromInput(input: string): string {
+  const prices: Record<string, string> = {
+    "nova-35": "35,000",
+    "nova-40": "40,000",
+    "nova-60": "45,000",
+    "nova-100": "65,000"
+  };
+
+  // Find the first key that is included in the input string
+  const foundKey = Object.keys(prices).find(key => 
+    input.toLowerCase().includes(key.toLowerCase())
+  );
+
+  return foundKey ? prices[foundKey] + " د.ع" : "Price Not Found";
 }
