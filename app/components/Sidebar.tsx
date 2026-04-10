@@ -21,7 +21,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { logoutAction } from "../db_service";
 
 const menuItems = [
-  // { icon: Home, label: "Dashboard", path: "/dashboard" },
+  { icon: Home, label: "Dashboard", path: "/dashboard" },
   // { icon: BarChart, label: "Analytics", path: "/analytics" },
   { icon: Users, label: "Users", path: "/users" },
   { icon: FileText, label: "Activate Users", path: "/activateUsers" },
