@@ -2,6 +2,7 @@
 
 import { sasApiCall } from "../../lib/sas-client"; // Adjust this import to point to your proxy file
 
+const cardId = 4
 export async function getSeries(page = 1, count = 500, search = "", sortBy = "series_date", direction = "desc") {
   const payload = {
     page: page,
@@ -20,7 +21,7 @@ export async function getSeries(page = 1, count = 500, search = "", sortBy = "se
   };
 
   // We use the proxy we built earlier to handle the token and forwarding!
-  return await sasApiCall("POST", "/admin/api/index.php/api/index/series", payload);
+  return await sasApiCall("POST", "/admin/api/index.php/api/index/series", payload, cardId);
 }
 
 
@@ -30,7 +31,7 @@ export async function getProfileStats() {
     page: 1,
     count: 1000, 
     columns: ["qty", "used"] // We only need these for the math
-  });
+  }, cardId);
 
   if (!result.success || !result.data || !Array.isArray(result.data.data)) {
     throw new Error(result.error || "Failed to fetch data for grouping");

@@ -87,7 +87,8 @@ async function getDynamicSas4Token(adminId: number, supabase: any) {
 export async function sasApiCall(
   method: 'GET' | 'POST' | 'DELETE', 
   path: string, 
-  body?: Record<string, unknown>
+  body?: Record<string, unknown>,
+  permission?: number
 ) {
   try {
     const supabase = createServerSupabaseClient();
@@ -98,6 +99,8 @@ export async function sasApiCall(
       return { success: false, error: 'User is not authenticated.', status: 401 };
     }
 
+    
+
     // 2. Check admin permission via get_user_admin_info()
     const { data: roleData, error: roleError } = await supabase.rpc('get_user_admin_info');
     if (roleError) {
@@ -106,6 +109,17 @@ export async function sasApiCall(
 
     if (!roleData || !roleData.admin_id) {
       return { success: false, error: 'ليس لديك صلاحية لإجراء هذه العملية.', status: 403 };
+    }
+
+    if (roleData.is_admin == false){
+      // check permission 
+    const { data: permissionData, error: permissionError } = await supabase.rpc('has_permission', { p_permission_id: permission });
+    if (permissionError) {
+      return { success: false, error: 'Failed to verify permissions: ' + permissionError.message, status: 500 };
+    }
+    if (!permissionData) {
+      return { success: false, error: 'ليس لديك صلاحية لإجراء هذه العملية.', status: 403 };
+    }
     }
 
     const adminId = roleData.admin_id;

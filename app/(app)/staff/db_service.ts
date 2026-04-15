@@ -6,8 +6,8 @@ export async function getStaffWithPermissions() {
   const supabase = createServerSupabaseClient();
 
   const { data, error } = await supabase.rpc("get_staff_with_permissions");
- console.log(data);
-console.log(error);
+//  console.log(data);
+// console.log(error);
   if (error) {
     return { success: false, message: error.message, data: [] };
   }

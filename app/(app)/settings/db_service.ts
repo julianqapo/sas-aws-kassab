@@ -2,6 +2,8 @@
 
 import { createServerSupabaseClient } from "../../lib/supabase-server";
 
+const settingId = 6
+
 export async function getCredential() {
   const supabase = createServerSupabaseClient();
 
@@ -13,6 +15,7 @@ export async function getCredential() {
   if (authError || !user) {
     return null;
   }
+  
 
   const { data, error } = await supabase.rpc("read_credential")
 //   const res = await supabase.functions.invoke("admin-login")
