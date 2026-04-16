@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
-import { Plus, Loader2, ShieldCheck, RefreshCw } from "lucide-react";
+import { Plus, Loader2, ShieldCheck, RefreshCw, Package } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "../../components/ui/sonner";
 import { getStaffWithPermissions, getAllPermissions } from "./db_service";
@@ -60,6 +60,7 @@ export default function StaffPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<StaffMember | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchStaff = useCallback(async () => {
     setLoading(true);
@@ -68,7 +69,8 @@ export default function StaffPage() {
       if (result.success) {
         setStaff(result.data || []);
       } else {
-        toast.error(result.message);
+        // toast.error(result.message);
+        setError(result.message);
       }
     } catch {
       toast.error("Failed to load staff");
@@ -102,6 +104,21 @@ export default function StaffPage() {
     setEditing(member);
     setModalOpen(true);
   };
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50/40 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900 p-4 md:p-8 flex items-center justify-center">
+        <Card className="max-w-md w-full rounded-2xl border-red-200 dark:border-red-900">
+          <CardContent className="p-8 text-center space-y-3">
+            <div className="h-12 w-12 rounded-2xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center mx-auto">
+              <Package className="w-6 h-6 text-red-600" />
+            </div>
+            <p className="font-bold text-red-600">{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50/40 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900 p-4 md:p-8">
