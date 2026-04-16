@@ -19,13 +19,17 @@ export async function getCredential() {
 
   const { data, error } = await supabase.rpc("read_credential")
 //   const res = await supabase.functions.invoke("admin-login")
-//   console.log(res)
+  // console.log(data)
 
   if (error || !data) {
-    return null;
+    return "حدث خطا في تحميل البيانات";
   }
 
-  return { username: data.username, password: data.password };
+  
+
+  return data;
+
+  // return { username: data.username, password: data.password };
 }
 
 export async function saveCredential(username: string, password: string) {

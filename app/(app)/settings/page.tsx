@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, Save, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Save, Loader2, Package } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -26,18 +26,23 @@ export default function SettingsPage() {
     success: boolean;
   } | null>(null);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     async function loadCredential() {
       try {
         const credential = await getCredential();
-
-        if (credential) {
+        
+        console.log(credential);
+        if (credential.success) {
           setUsername(credential.username);
           setPassword(credential.password);
           setHasExisting(true);
+        }else{
+          setError(credential.message);
         }
       } catch {
-        // No existing credential
+        setError("لا تملك الصلاحيات الكافية لعرض هذه الصفحة");
       } finally {
         setLoading(false);
       }
@@ -66,7 +71,20 @@ export default function SettingsPage() {
       setSaving(false);
     }
   }
-
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50/40 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900 p-4 md:p-8 flex items-center justify-center">
+        <Card className="max-w-md w-full rounded-2xl border-red-200 dark:border-red-900">
+          <CardContent className="p-8 text-center space-y-3">
+            <div className="h-12 w-12 rounded-2xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center mx-auto">
+              <Package className="w-6 h-6 text-red-600" />
+            </div>
+            <p className="font-bold text-red-600">{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   return (
     <div className="p-8">
       <div className="max-w-6xl mx-auto space-y-6">
