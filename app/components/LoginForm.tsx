@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { handleSignInAction, handleStaffSignInAction } from "../db_service";
+import { handleSmartAdminAuthAction, handleSmartStaffAuthAction } from "../db_service";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -25,25 +25,38 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setSubmitting(true);
 
     const formData = new FormData();
     formData.set("email", email);
     formData.set("password", password);
 
-    const action =
-      userType === "admin" ? handleSignInAction : handleStaffSignInAction;
-    const result = await action(null, formData);
+    try {
+      const action =
+        userType === "admin"
+          ? handleSmartAdminAuthAction
+          : handleSmartStaffAuthAction;
+      const result = await action(null, formData);
 
-    if (result?.ok && result?.redirectTo) {
-      router.push(result.redirectTo);
-    } else if (result?.message) {
-      setError(result.message);
+      if (result?.ok && result?.redirectTo) {
+        router.refresh();
+        router.push(result.redirectTo);
+      } else if (result?.ok && result?.message) {
+        setSuccess(result.message);
+        setSubmitting(false);
+      } else if (result?.message) {
+        setError(result.message);
+        setSubmitting(false);
+      }
+    } catch {
+      setError("A connection error occurred.");
       setSubmitting(false);
     }
   };
@@ -52,10 +65,10 @@ export function LoginForm() {
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl text-center text-gray-900 dark:text-white">
-          Welcome Back
+          Welcome
         </CardTitle>
         <CardDescription className="text-center text-gray-600 dark:text-gray-400">
-          Select your role and enter your credentials
+          Sign in to your account or create a new one
         </CardDescription>
       </CardHeader>
 
@@ -94,6 +107,11 @@ export function LoginForm() {
           {error && (
             <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md">
               {error}
+            </div>
+          )}
+          {success && (
+            <div className="p-3 text-sm text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400 rounded-md">
+              {success}
             </div>
           )}
           <div className="space-y-2">
@@ -153,17 +171,11 @@ export function LoginForm() {
             className="w-full bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
           >
             {submitting
-              ? "Signing in..."
-              : `Sign In as ${userType === "admin" ? "Admin" : "Staff"}`}
+              ? "Please wait..."
+              : `Continue as ${userType === "admin" ? "Admin" : "Staff"}`}
           </Button>
-          <p className="text-sm text-center text-gray-600 dark:text-gray-400">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/register"
-              className="text-orange-600 dark:text-orange-500 hover:underline"
-            >
-              Sign up
-            </Link>
+          <p className="text-xs text-center text-gray-500 dark:text-gray-500">
+            If you don&apos;t have an account, one will be created automatically.
           </p>
         </CardFooter>
       </form>
