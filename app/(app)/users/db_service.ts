@@ -2,6 +2,7 @@
 
 import { sasApiCall } from "../../lib/sas-client";
 
+const usersId = 2
 
 export async function getUsers(
   page: number,
@@ -29,7 +30,9 @@ export async function getUsers(
         "expiration",
         "balance",
       ],
-    }
+    },
+    usersId
+
   );
   return response;
 }
