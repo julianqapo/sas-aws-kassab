@@ -76,12 +76,30 @@ export async function getSmartToken(username: string) {
   return token;
 }
 
+import { createServerSupabaseClient } from "../../../lib/supabase-server";
+
+  const activateUsers = 3
 /**
  * 2. The Main Dashboard Fetcher
  * Your client component calls this function directly!
  */
 export async function loginUser(username: string) {
   try {
+    const supabase = createServerSupabaseClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return null;
+    }
+    const { data, error } = await supabase.rpc("has_permission", {
+      p_permission_id: activateUsers
+    })
+    // user does not has permisson, the return is either true, or false
+    if (!data) {
+      return {
+        success: false,
+        error: "ليس لديك صلاحية الوصول إلى هذه الصفحة"
+      };
+    }
     // Get the token (instantly from cookie, or fetches a new one)
     const token = await getSmartToken(username);
     

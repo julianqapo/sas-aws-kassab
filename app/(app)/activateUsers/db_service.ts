@@ -2,6 +2,8 @@
 
 import { sasApiCall } from "../../lib/sas-client";
 
+
+
 export async function getUsers(
   page: number,
   count: number,
@@ -33,6 +35,8 @@ export async function getUsers(
     };
   }
 
+  const activateUsers = 3
+
   // 3. API Call
   const response = await sasApiCall(
     "POST",
@@ -53,7 +57,8 @@ export async function getUsers(
         "expiration",
         "balance",
       ],
-    }
+    },
+    activateUsers
   );
   
   return response;

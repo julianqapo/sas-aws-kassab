@@ -25,6 +25,7 @@ import {
   ChevronRight,
   Loader2,
   CalendarClock,
+  Package
 } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "../../components/ui/sonner";
@@ -42,6 +43,7 @@ export default function ActivateUsersPage() {
   const [total, setTotal] = useState(0);
   const [from, setFrom] = useState(0);
   const [to, setTo] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const getExpirationStyles = (expirationDate: string | null) => {
     if (!expirationDate || expirationDate === "—") return "text-gray-600 dark:text-gray-400";
@@ -64,9 +66,10 @@ export default function ActivateUsersPage() {
     setLoading(true);
     try {
       const result = (await getUsers(targetPage, PAGE_SIZE, query)) as any;
-
+      console.log(result)
       if (!result.success) {
-        throw new Error(result.error || "Failed to load users");
+        setError(result.error);
+        // throw new Error(result.error || "Failed to load users");
       }
       
       setUsers(result.data.data);
@@ -95,6 +98,21 @@ export default function ActivateUsersPage() {
     const gb = b / (1024 * 1024 * 1024);
     return `${gb.toFixed(2)} GB`;
   };
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50/40 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900 p-4 md:p-8 flex items-center justify-center">
+        <Card className="max-w-md w-full rounded-2xl border-red-200 dark:border-red-900">
+          <CardContent className="p-8 text-center space-y-3">
+            <div className="h-12 w-12 rounded-2xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center mx-auto">
+              <Package className="w-6 h-6 text-red-600" />
+            </div>
+            <p className="font-bold text-red-600">{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">

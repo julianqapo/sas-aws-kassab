@@ -26,6 +26,7 @@ import {
   PlusCircle,
   Receipt,
   RefreshCcw, // Added for the Extend icon
+  Package,
 } from "lucide-react";
 
 export default function SubscriberDashboard() {
@@ -96,14 +97,15 @@ export default function SubscriberDashboard() {
 
   if (error) {
     return (
-      <div className="p-8 text-center min-h-[60vh] flex items-center justify-center">
-        <div className="inline-flex flex-col items-center p-10 bg-red-50 dark:bg-red-900/10 rounded-3xl border border-red-100 dark:border-red-900/30">
-          <ShieldAlert className="w-12 h-12 text-red-500 mb-4" />
-          <h2 className="text-xl font-black text-red-700 uppercase tracking-tight mb-2">
-            Error Occurred
-          </h2>
-          <p className="text-red-600 text-sm max-w-xs">{error}</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50/40 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900 p-4 md:p-8 flex items-center justify-center">
+        <Card className="max-w-md w-full rounded-2xl border-red-200 dark:border-red-900">
+          <CardContent className="p-8 text-center space-y-3">
+            <div className="h-12 w-12 rounded-2xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center mx-auto">
+              <Package className="w-6 h-6 text-red-600" />
+            </div>
+            <p className="font-bold text-red-600">{error}</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
