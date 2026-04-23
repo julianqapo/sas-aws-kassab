@@ -17,18 +17,26 @@ BEGIN
     RETURN false;
   END IF;
 
-  -- 3. Get the admin ID where this staff member is currently active
-  SELECT id_admin INTO _active_admin_id
-  FROM staff
-  WHERE email = _email AND is_active = true
+  -- 3. First, check if the user is an Admin
+  SELECT id INTO _active_admin_id
+  FROM admin
+  WHERE email = _email
   LIMIT 1;
 
-  -- If they have no active admin record, they logically cannot have a valid active password
+  -- 4. If not an admin, check if they are an active staff member
+  IF _active_admin_id IS NULL THEN
+    SELECT id_admin INTO _active_admin_id
+    FROM staff
+    WHERE email = _email AND is_active = true
+    LIMIT 1;
+  END IF;
+
+  -- If neither an admin nor an active staff member, they can't have a valid active password
   IF _active_admin_id IS NULL THEN
     RETURN false;
   END IF;
 
-  -- 4. Check if a record exists for this specific email AND active admin
+  -- 5. Check if a record exists for this specific email AND active admin connection
   SELECT EXISTS (
     SELECT 1 FROM activation_password 
     WHERE email = _email AND id_admin = _active_admin_id

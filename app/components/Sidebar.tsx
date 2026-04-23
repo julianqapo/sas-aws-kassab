@@ -15,6 +15,7 @@ import {
   Sun,
   Wifi,
   UserCog,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useTheme } from "../contexts/ThemeContext";
@@ -25,6 +26,7 @@ const menuItems = [
   // { icon: BarChart, label: "Analytics", path: "/analytics" },
   { icon: Users, label: "Users", path: "/users" },
   { icon: FileText, label: "Activate Users", path: "/activateUsers" },
+  { icon: ShieldCheck, label: "Activation Password", path: "/activationPassword" },
   { icon: Wifi, label: "Cards", path: "/cards" },
   { icon: UserCog, label: "Staff", path: "/staff" },
   { icon: Settings, label: "Settings", path: "/settings" },
