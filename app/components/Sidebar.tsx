@@ -30,7 +30,7 @@ const menuItems = [
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
-export function Sidebar() {
+export function Sidebar({ userEmail }: { userEmail?: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -58,10 +58,12 @@ export function Sidebar() {
           animate={{ opacity: 1 }}
         >
           <div className="w-8 h-8 bg-orange-600 dark:bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
-            <span className="font-bold text-white">A</span>
+            <span className="font-bold text-white">
+              {userEmail ? userEmail.charAt(0).toUpperCase() : "A"}
+            </span>
           </div>
-          <motion.span
-            className="font-semibold whitespace-nowrap overflow-hidden text-gray-900 dark:text-white"
+          <motion.div
+            className="flex flex-col whitespace-nowrap overflow-hidden"
             initial={{ opacity: 0, width: 0 }}
             animate={{
               opacity: isExpanded ? 1 : 0,
@@ -69,8 +71,15 @@ export function Sidebar() {
             }}
             transition={{ duration: 0.3 }}
           >
-            Admin Panel
-          </motion.span>
+            <span className="font-semibold text-gray-900 dark:text-white leading-tight">
+              Admin Panel
+            </span>
+            {userEmail && (
+              <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-[160px]">
+                {userEmail}
+              </span>
+            )}
+          </motion.div>
         </motion.div>
       </div>
 
