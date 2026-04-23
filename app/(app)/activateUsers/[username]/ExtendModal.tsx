@@ -9,23 +9,23 @@ interface ExtendModalProps {
 }
 
 const ExtendSubscriptionModal: React.FC<ExtendModalProps> = ({ username, isOpen, onClose, onSuccess }) => {
-  const [confirmationInput, setConfirmationInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleExtend = async () => {
-    if (confirmationInput !== 'confirm') return;
+    if (!passwordInput) return;
 
     setIsLoading(true);
     setError(null);
 
-    const result = await extendSubscription(username);
+    const result = await extendSubscription(username, passwordInput);
     console.log(result)
 
     if (result.success) {
-      setConfirmationInput('');
+      setPasswordInput('');
       onSuccess(result.data);
       onClose();
     } else {
@@ -49,14 +49,14 @@ const ExtendSubscriptionModal: React.FC<ExtendModalProps> = ({ username, isOpen,
 
       <div className="mt-6 space-y-3">
         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-          Type <span className="text-gray-900 dark:text-white">confirm</span> to unlock
+          أدخل كلمة مرور التفعيل
         </label>
         <input
-          type="text"
+          type="password"
           className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all dark:bg-gray-900 dark:border-gray-700 dark:text-white"
-          placeholder='Enter confirmation text...'
-          value={confirmationInput}
-          onChange={(e) => setConfirmationInput(e.target.value)}
+          placeholder='كلمة مرور التفعيل...'
+          value={passwordInput}
+          onChange={(e) => setPasswordInput(e.target.value)}
           disabled={isLoading}
         />
       </div>
@@ -78,11 +78,11 @@ const ExtendSubscriptionModal: React.FC<ExtendModalProps> = ({ username, isOpen,
         
         <button
           onClick={handleExtend}
-          disabled={confirmationInput !== 'confirm' || isLoading}
+          disabled={!passwordInput || isLoading}
           className={`flex-1 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-lg ${
-            confirmationInput === 'confirm' && !isLoading
+            passwordInput && !isLoading
               ? 'bg-orange-600 text-white shadow-orange-500/20 hover:bg-orange-700 active:scale-95'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none dark:bg-gray-700 dark:text-gray-500'
           }`}
         >
           {isLoading ? 'Processing...' : 'Confirm Extension'}

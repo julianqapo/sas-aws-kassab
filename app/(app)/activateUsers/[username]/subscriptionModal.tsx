@@ -29,7 +29,7 @@ export default function AssignSeriesModal({
   const [options, setOptions] = useState<any[]>([]);
   const [selectedSeries, setSelectedSeries] = useState("");
   const [loadingPin, setLoadingPin] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
 
   // --- NEW STATE: To track the final result ---
   const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -51,7 +51,7 @@ export default function AssignSeriesModal({
       console.log(`Assigning PIN ${pin} from series ${selectedSeries} to user ${username}`);
 
       // 2. Activate the subscription
-      const result = await activateSubscription(username, pin);
+      const result = await activateSubscription(username, pin, passwordInput);
 
       setLoadingPin(false);
 
@@ -147,12 +147,12 @@ export default function AssignSeriesModal({
                   </div>
 
                   <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
-                    <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Type "CONFIRM" to proceed</label>
+                    <label className="text-xs font-black uppercase text-gray-400 tracking-widest">أدخل كلمة مرور التفعيل للمتابعة</label>
                     <input
-                      type="text"
-                      placeholder="Type confirm here..."
-                      value={confirmText}
-                      onChange={(e) => setConfirmText(e.target.value)}
+                      type="password"
+                      placeholder="كلمة مرور التفعيل..."
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
                       className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-orange-500 outline-none transition-all"
                     />
                   </div>
@@ -173,7 +173,7 @@ export default function AssignSeriesModal({
               <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl h-12">Cancel</Button>
               <Button 
                 onClick={() => handleAssign(username)}
-                disabled={loadingPin || options.length === 0 || confirmText.trim().toLowerCase() !== "confirm"}
+                disabled={loadingPin || options.length === 0 || !passwordInput}
                 className="flex-1 rounded-xl h-12 bg-orange-600 hover:bg-orange-700 text-white font-bold shadow-lg shadow-orange-500/20 disabled:opacity-50"
               >
                 {loadingPin ? <Loader2 className="w-5 h-5 animate-spin" /> : "Assign Series"}

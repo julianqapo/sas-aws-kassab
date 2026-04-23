@@ -268,8 +268,13 @@ export async function getFirstAvailablePin(series: string): Promise<string | nul
  * @param username The username (used to retrieve the Bearer token)
  * @param pin The card PIN to redeem
  */
-export async function activateSubscription(username: string, pin: string) {
+export async function activateSubscription(username: string, pin: string, password: string) {
   try {
+    const passCheck = await verifyActivationPassword(password);
+    if (passCheck.error || !passCheck.hasPassword) {
+      return { success: false, error: "كلمة مرور التفعيل غير صحيحة" };
+    }
+
     // 1. Get the Bearer Token for this user
     const token = await getSmartToken(username);
     
@@ -416,8 +421,13 @@ export async function getUserInvoices(
  * @param username The username (used to retrieve the Bearer token)
  * @param pin The card PIN to redeem
  */
-export async function extendSubscription(username: string) {
+export async function extendSubscription(username: string, password: string) {
   try {
+    const passCheck = await verifyActivationPassword(password);
+    if (passCheck.error || !passCheck.hasPassword) {
+      return { success: false, error: "كلمة مرور التفعيل غير صحيحة" };
+    }
+
     // 1. Get the Bearer Token for this user
     const token = await getSmartToken(username);
     
@@ -476,3 +486,29 @@ export async function extendSubscription(username: string) {
 
 
 // test ends here
+
+
+export async function verifyActivationPassword(password: string) {
+  const supabase = createServerSupabaseClient();
+
+  const { data, error } = await supabase.rpc("verify_activation_password", { p_current_password: password });
+  console.log("has_activation_password", data)
+  if (error) {
+    return { error: true, message: error.message };
+  }
+
+  return { hasPassword: !!data, error: false };
+}
+
+
+export async function hasActivationPassword() {
+  const supabase = createServerSupabaseClient();
+
+  const { data, error } = await supabase.rpc("has_activation_password");
+
+  if (error) {
+    return { error: true, message: error.message };
+  }
+
+  return { hasPassword: !!data, error: false };
+}
