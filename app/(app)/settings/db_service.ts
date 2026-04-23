@@ -26,7 +26,7 @@ export async function getCredential() {
   }
 
   
-  console.log(data)
+  // console.log(data)
   return data;
 
   // return { username: data.username, password: data.password };

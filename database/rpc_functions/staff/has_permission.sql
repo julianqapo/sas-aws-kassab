@@ -7,6 +7,7 @@ AS $$
 DECLARE
   _email text;
   _has_permission boolean;
+  _is_admin boolean;
 BEGIN
   -- 1. Extract the email from the authenticated user's session
   _email := auth.jwt() ->> 'email';
@@ -17,17 +18,28 @@ BEGIN
   END IF;
 
   -- 2. Check if the permission exists for this staff member
-  -- We join the staff table to match the JWT email to the id_staff UUID
   SELECT EXISTS (
     SELECT 1 
     FROM staff_permission sp
     JOIN staff s ON s.email = sp.email_staff
-    WHERE sp.id_access_list = p_permission_id  -- Note: Change 'permission_id' to 'id' if that is your exact column name
+    WHERE sp.id_access_list = p_permission_id
     AND s.email = _email
     AND s.is_active = true -- Extra security: ensure the staff account is actually active
   ) INTO _has_permission;
 
-  -- 3. Return true or false
-  RETURN _has_permission;
+  -- If the staff check passes, return true immediately to save processing time
+  IF _has_permission THEN
+    RETURN true;
+  END IF;
+
+  -- 3. If they don't have the specific staff permission, check if they are an Admin
+  SELECT EXISTS (
+    SELECT 1 
+    FROM admin 
+    WHERE email = _email
+  ) INTO _is_admin;
+
+  -- Return true if they are an admin, otherwise false
+  RETURN _is_admin;
 END;
 $$;
