@@ -101,10 +101,23 @@ export default function UsersPage() {
     "username", "firstname", "profile", "last_online", "expiration", "remaining_days", "traffic",
   ]);
 
+  useEffect(() => {
+    const saved = localStorage.getItem("sas_users_visible_columns");
+    if (saved) {
+      try {
+        setVisibleColumns(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse visible columns", e);
+      }
+    }
+  }, []);
+
   const toggleColumn = (id: string) => {
-    setVisibleColumns((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
-    );
+    setVisibleColumns((prev) => {
+      const newCols = prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id];
+      localStorage.setItem("sas_users_visible_columns", JSON.stringify(newCols));
+      return newCols;
+    });
   };
 
   const fetchUsers = useCallback(async () => {
