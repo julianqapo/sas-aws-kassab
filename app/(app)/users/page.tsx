@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -42,30 +43,43 @@ import {
   RefreshCw,
   AlertTriangle,
   XCircle,
-  Package
+  Package,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown
 } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "../../components/ui/sonner";
 import { getUsers } from "./db_service";
 import type { SASUser } from "../../types/sas-types";
 
+
 const PAGE_SIZE_OPTIONS = [10, 15, 25, 50, 100];
 
-const ALL_COLUMNS = [
+
+// `sortKey` is what we send to the API. If omitted, it falls back to `id`.
+// `sortable: false` disables sorting for that column.
+const ALL_COLUMNS: {
+  id: string;
+  label: string;
+  sortKey?: string;
+  sortable?: boolean;
+}[] = [
   { id: "username", label: "Username" },
   { id: "firstname", label: "First Name" },
   { id: "lastname", label: "Last Name" },
-  { id: "profile", label: "Profile" },
+  { id: "profile_id", label: "Profile" },
   { id: "last_online", label: "Last Online" },
   { id: "expiration", label: "Expiration" },
-  { id: "remaining_days", label: "Remaining Days" },
-  { id: "traffic", label: "Traffic" },
+  { id: "remaining_days", label: "Remaining Days", sortKey: "expiration" },
+  { id: "traffic", label: "Traffic", sortable: false },
   { id: "balance", label: "Balance" },
   { id: "created_at", label: "Created At" },
   { id: "loan_balance", label: "Debt" },
   { id: "phone", label: "Phone" },
-  { id: "parent_username", label: "Parent Username" },
+  { id: "parent_id", label: "Parent Username" },
 ];
+
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -75,18 +89,26 @@ const containerVariants = {
   },
 };
 
+
 const rowVariants = {
   hidden: { opacity: 0, x: -8 },
   visible: { opacity: 1, x: 0, transition: { duration: 0.25, ease: "easeOut" as const} },
 };
+
 
 export default function UsersPage() {
   const router = useRouter();
   const [users, setUsers] = useState<SASUser[]>([]);
   const [loading, setLoading] = useState(true);
 
+
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+
+
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -96,21 +118,32 @@ export default function UsersPage() {
   const [to, setTo] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
-    "username", "firstname", "profile", "last_online", "expiration", "remaining_days", "traffic",
+    "username", "firstname", "profile_id", "last_online", "expiration", "remaining_days", "traffic",
   ]);
+
 
   useEffect(() => {
     const saved = localStorage.getItem("sas_users_visible_columns");
     if (saved) {
       try {
-        setVisibleColumns(JSON.parse(saved));
+        const parsed: string[] = JSON.parse(saved);
+        // Migrate legacy ids saved before API-field renames
+        const migrated = parsed.map((c) =>
+          c === "profile" ? "profile_id" : c === "parent_username" ? "parent_id" : c
+        );
+        setVisibleColumns(migrated);
+        if (JSON.stringify(migrated) !== JSON.stringify(parsed)) {
+          localStorage.setItem("sas_users_visible_columns", JSON.stringify(migrated));
+        }
       } catch (e) {
         console.error("Failed to parse visible columns", e);
       }
     }
   }, []);
+
 
   const toggleColumn = (id: string) => {
     setVisibleColumns((prev) => {
@@ -120,10 +153,11 @@ export default function UsersPage() {
     });
   };
 
+
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const result = (await getUsers(page, pageSize, searchQuery)) as any;
+      const result = (await getUsers(page, pageSize, searchQuery, sortColumn || undefined, sortDirection)) as any;
       // console.log(result)
       if (!result.success || !result.data || !Array.isArray(result.data.data)) {
         setError(result.error);
@@ -140,11 +174,13 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, searchQuery]);
+  }, [page, pageSize, searchQuery, sortColumn, sortDirection]);
+
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,14 +188,28 @@ export default function UsersPage() {
     setPage(1);
   };
 
+
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize);
     setPage(1);
   };
 
+
   const handleRowClick = (username: string) => {
     router.push(`/activateUsers/${username}`);
   };
+
+
+  const handleSort = (sortKey: string) => {
+    if (sortColumn === sortKey) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortColumn(sortKey);
+      setSortDirection("asc");
+    }
+    setPage(1);
+  };
+
 
   const formatTraffic = (bytes: number | string | undefined) => {
     if (!bytes || bytes === "—") return "0 GB";
@@ -167,6 +217,7 @@ export default function UsersPage() {
     const gb = b / (1024 * 1024 * 1024);
     return `${gb.toFixed(2)} GB`;
   };
+
 
   const calculateRemainingDays = (expirationDate: string | null) => {
     if (!expirationDate || expirationDate === "—") return null;
@@ -176,6 +227,7 @@ export default function UsersPage() {
     const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return days < 0 ? 0 : days;
   };
+
 
   const getRowStyles = (expirationDate: string | null) => {
     if (!expirationDate || expirationDate === "—") return "";
@@ -188,6 +240,7 @@ export default function UsersPage() {
     }
     return "border-l-4 border-l-transparent";
   };
+
 
   const getRemainingDaysDisplay = (remaining: number | null) => {
     if (remaining === null) return <span className="text-gray-400">—</span>;
@@ -215,6 +268,7 @@ export default function UsersPage() {
     );
   };
 
+
   const getPaginationItems = () => {
     const items: (number | string)[] = [];
     const maxVisible = 3;
@@ -232,7 +286,9 @@ export default function UsersPage() {
     return items;
   };
 
+
   
+
 
   if (error) {
     return (
@@ -249,10 +305,12 @@ export default function UsersPage() {
     );
   }
 
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50/40 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900 p-4 md:p-8">
       <Toaster richColors />
       <div className="max-w-7xl mx-auto space-y-6">
+
 
         {/* Header */}
         <motion.div
@@ -271,6 +329,7 @@ export default function UsersPage() {
             </div>
           </div>
 
+
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -288,6 +347,7 @@ export default function UsersPage() {
               </div>
             </div>
 
+
             <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 h-11 shadow-sm hover:shadow-md transition-shadow duration-300">
               <ListOrdered className="w-4 h-4 text-gray-400" />
               <select
@@ -301,6 +361,7 @@ export default function UsersPage() {
               </select>
             </div>
 
+
             <Button
               variant="outline"
               onClick={() => setIsColumnModalOpen(true)}
@@ -309,6 +370,7 @@ export default function UsersPage() {
               <Settings2 className="w-4 h-4 text-orange-600" />
               Columns
             </Button>
+
 
             <Button
               variant="outline"
@@ -320,6 +382,7 @@ export default function UsersPage() {
             </Button>
           </motion.div>
         </motion.div>
+
 
         {/* Search */}
         <motion.form
@@ -346,6 +409,7 @@ export default function UsersPage() {
             Search
           </Button>
         </motion.form>
+
 
         {/* Column Modal */}
         <Dialog open={isColumnModalOpen} onOpenChange={setIsColumnModalOpen}>
@@ -388,6 +452,7 @@ export default function UsersPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
 
         {/* Table */}
         <motion.div
@@ -435,11 +500,37 @@ export default function UsersPage() {
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-gray-50/80 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                            {ALL_COLUMNS.filter((c) => visibleColumns.includes(c.id)).map((col) => (
-                              <TableHead key={col.id} className="font-black text-[10px] uppercase tracking-widest text-gray-500 py-4">
-                                {col.label}
-                              </TableHead>
-                            ))}
+                            {ALL_COLUMNS.filter((c) => visibleColumns.includes(c.id)).map((col) => {
+                              const sortable = col.sortable !== false;
+                              const sortKey = col.sortKey ?? col.id;
+                              const isActive = sortable && sortColumn === sortKey;
+                              return (
+                                <TableHead
+                                  key={col.id}
+                                  onClick={sortable ? () => handleSort(sortKey) : undefined}
+                                  className={`font-black text-[10px] uppercase tracking-widest text-gray-500 py-4 transition-colors ${
+                                    sortable
+                                      ? "cursor-pointer hover:text-gray-900 dark:hover:text-white"
+                                      : "cursor-default"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-1 select-none">
+                                    {col.label}
+                                    {sortable && (
+                                      isActive ? (
+                                        sortDirection === "asc" ? (
+                                          <ArrowUp className="w-3 h-3 text-orange-500" />
+                                        ) : (
+                                          <ArrowDown className="w-3 h-3 text-orange-500" />
+                                        )
+                                      ) : (
+                                        <ArrowUpDown className="w-3 h-3 opacity-30" />
+                                      )
+                                    )}
+                                  </div>
+                                </TableHead>
+                              );
+                            })}
                           </TableRow>
                         </TableHeader>
                         <motion.tbody variants={containerVariants} initial="hidden" animate="visible">
@@ -476,7 +567,7 @@ export default function UsersPage() {
                                 {visibleColumns.includes("lastname") && (
                                   <TableCell className="py-3.5">{user.lastname || "—"}</TableCell>
                                 )}
-                                {visibleColumns.includes("profile") && (
+                                {visibleColumns.includes("profile_id") && (
                                   <TableCell className="py-3.5">
                                     <span className="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-[10px] font-black uppercase tracking-wider">
                                       {user.profile_details?.name || "—"}
@@ -549,7 +640,7 @@ export default function UsersPage() {
                                 {visibleColumns.includes("phone") && (
                                   <TableCell className="text-xs font-medium py-3.5">{user.phone || "—"}</TableCell>
                                 )}
-                                {visibleColumns.includes("parent_username") && (
+                                {visibleColumns.includes("parent_id") && (
                                   <TableCell className="text-xs text-purple-600 font-bold uppercase tracking-tighter py-3.5">
                                     @{user.parent_username || "System"}
                                   </TableCell>
@@ -560,6 +651,7 @@ export default function UsersPage() {
                         </motion.tbody>
                       </Table>
                     </div>
+
 
                     {/* Pagination */}
                     <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-800 gap-4">

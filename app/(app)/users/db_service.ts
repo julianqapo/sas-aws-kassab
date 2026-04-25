@@ -11,6 +11,8 @@ export async function getUsers(
   sortBy?: string,
   direction?: string
 ) {
+  console.log("sortby", sortBy)
+  console.log("direction", direction)
   const response = await sasApiCall(
     "POST",
     "/admin/api/index.php/api/index/user",
@@ -34,6 +36,7 @@ export async function getUsers(
     usersId
 
   );
+  // console.log(response);
   return response;
 }
 
