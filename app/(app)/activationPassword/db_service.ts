@@ -31,3 +31,16 @@ export async function upsertActivationPassword(oldPassword: string, newPassword:
 
   return data as { success: boolean; message: string };
 }
+
+
+export async function getAdminActivationPasswords() {
+  const supabase = createServerSupabaseClient();
+
+  const { data, error } = await supabase.rpc("get_admin_activation_passwords");
+
+  if (error) {
+    return { success: false, error: true, message: error.message, data: [] };
+  }
+
+  return { success: true, error: false, data: data as { email: string, password: string }[] };
+}

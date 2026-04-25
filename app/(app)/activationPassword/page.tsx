@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, Save, Loader2, Package, ShieldCheck } from "lucide-react";
+import { 
+  Eye, 
+  EyeOff, 
+  Save, 
+  Loader2, 
+  Package, 
+  ShieldCheck,
+  KeyRound,
+  Mail,
+  Copy,
+  Check
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -9,10 +20,28 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
-import { hasActivationPassword, upsertActivationPassword } from "./db_service";
+import { toast } from "sonner";
+import { 
+  hasActivationPassword, 
+  upsertActivationPassword,
+  getAdminActivationPasswords 
+} from "./db_service";
+
+type PasswordRecord = {
+  email: string;
+  password: string;
+};
 
 export default function ActivationPasswordPage() {
   const [oldPassword, setOldPassword] = useState("");
@@ -34,16 +63,31 @@ export default function ActivationPasswordPage() {
 
   const [error, setError] = useState<string | null>(null);
 
+  // --- New States for Staff Passwords ---
+  const [staffRecords, setStaffRecords] = useState<PasswordRecord[] | null>(null);
+  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
+
   useEffect(() => {
     async function checkStatus() {
       try {
-        const result = await hasActivationPassword();
-        if (result.error) {
-           setError(result.message);
+        // Run both fetches simultaneously
+        const [statusResult, adminResult] = await Promise.all([
+          hasActivationPassword(),
+          getAdminActivationPasswords()
+        ]);
+
+        if (statusResult.error) {
+           setError(statusResult.message);
         } else {
-           setHasExisting(result.hasPassword!);
-           console.log(result.hasPassword);
+           setHasExisting(statusResult.hasPassword!);
         }
+
+        // Only populate if successful AND has valid data
+        if (adminResult.success && adminResult.data && adminResult.data.length > 0) {
+          setStaffRecords(adminResult.data);
+        }
+
       } catch {
         setError("حدث خطأ أثناء جلب البيانات");
       } finally {
@@ -87,6 +131,28 @@ export default function ActivationPasswordPage() {
     }
   }
 
+  // --- Helper functions for the table ---
+  const toggleVisibility = (email: string) => {
+    const newVisible = new Set(visiblePasswords);
+    if (newVisible.has(email)) {
+      newVisible.delete(email);
+    } else {
+      newVisible.add(email);
+    }
+    setVisiblePasswords(newVisible);
+  };
+
+  const copyToClipboard = async (email: string, password: string) => {
+    try {
+      await navigator.clipboard.writeText(password);
+      setCopiedEmail(email);
+      toast.success("تم نسخ كلمة المرور بنجاح");
+      setTimeout(() => setCopiedEmail(null), 2000);
+    } catch (err) {
+      toast.error("فشل في نسخ كلمة المرور");
+    }
+  };
+
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50/40 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900 p-4 md:p-8 flex items-center justify-center">
@@ -115,6 +181,7 @@ export default function ActivationPasswordPage() {
           </p>
         </div>
 
+        {/* --- YOUR ORIGINAL FORM CARD --- */}
         <Card>
           <CardHeader>
             <CardTitle className="text-gray-900 dark:text-white">
@@ -257,6 +324,99 @@ export default function ActivationPasswordPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* --- NEW CONDITIONAL TABLE RENDERING --- */}
+        {staffRecords && staffRecords.length > 0 && (
+          <Card className="shadow-md border-gray-200 dark:border-gray-800 overflow-hidden">
+            <CardHeader className="border-b border-gray-50 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30">
+              <CardTitle className="text-gray-900 dark:text-white">
+                كلمات مرور الموظفين
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto custom-scrollbar">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50/50 dark:bg-gray-900/50 hover:bg-transparent">
+                      <TableHead className="font-black text-[10px] uppercase tracking-wider text-gray-500 w-1/2">
+                        البريد الإلكتروني
+                      </TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-wider text-gray-500 w-1/3">
+                        كلمة المرور
+                      </TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-wider text-gray-500 text-left pl-6">
+                        إجراءات
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {staffRecords.map((record) => {
+                      const isVisible = visiblePasswords.has(record.email);
+                      const isCopied = copiedEmail === record.email;
+
+                      return (
+                        <TableRow 
+                          key={record.email} 
+                          className="hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors"
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg">
+                                <Mail className="w-4 h-4" />
+                              </div>
+                              <span className="text-gray-900 dark:text-gray-100 font-bold">
+                                {record.email}
+                              </span>
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="p-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 rounded-lg">
+                                <KeyRound className="w-4 h-4" />
+                              </div>
+                              <span className={`font-mono text-sm ${isVisible ? "text-gray-900 dark:text-white font-bold" : "text-gray-400 tracking-widest mt-1"}`}>
+                                {isVisible ? record.password : "••••••••"}
+                              </span>
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="text-left pl-6">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                type="button"
+                                onClick={() => toggleVisibility(record.email)}
+                                className="h-9 w-9 p-0 text-gray-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+                              >
+                                {isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </Button>
+
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                type="button"
+                                onClick={() => copyToClipboard(record.email, record.password)}
+                                className={`h-9 w-9 p-0 rounded-lg transition-all ${
+                                  isCopied 
+                                    ? "bg-green-50 border-green-200 text-green-600 dark:bg-green-900/20 dark:border-green-800" 
+                                    : "border-gray-200 text-gray-500 hover:text-orange-600 hover:border-orange-200 dark:border-gray-700"
+                                }`}
+                              >
+                                {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
