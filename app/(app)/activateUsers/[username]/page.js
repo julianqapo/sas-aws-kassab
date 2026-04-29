@@ -218,15 +218,35 @@ export default function SubscriberDashboard() {
               <Receipt className="w-4 h-4 mr-2 text-blue-500" />
               Billing History
             </Button>
+            {/* if loan days is 0 the user has loan and button is extend if not then this button not visible */}
+            {data.dashboard.data.loan.days == 0 ||
+            data.dashboard.data.loan.days == null ? (
+              <Button
+                variant="outline"
+                onClick={() => setIsExtendModalOpen(true)}
+                className="rounded-xl font-bold text-xs uppercase h-11 px-5 border-blue-200 text-blue-600 dark:border-blue-900 hover:bg-blue-50 active:scale-95 transition-transform"
+              >
+                <RefreshCcw className="w-4 h-4 mr-2" />
+                Extend
+              </Button>
+            ) : (
+              // if loan days is more than 0 the user has no loan and button is renew if not then this button not visible
+              <div className="group relative w-fit">
+                {/* Tooltip */}
+                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block w-max bg-gray-800 text-white text-[10px] py-1 px-2 rounded shadow-lg">
+                  User already has been extended
+                </div>
 
-            <Button
-              variant="outline"
-              onClick={() => setIsExtendModalOpen(true)}
-              className="rounded-xl font-bold text-xs uppercase h-11 px-5 border-blue-200 text-blue-600 dark:border-blue-900 hover:bg-blue-50 active:scale-95 transition-transform"
-            >
-              <RefreshCcw className="w-4 h-4 mr-2" />
-              Extend
-            </Button>
+                <Button
+                  disabled
+                  variant="outline"
+                  className="rounded-xl font-bold text-xs uppercase h-11 px-5 border-blue-200 text-blue-600 dark:border-blue-900 opacity-50 cursor-not-allowed"
+                >
+                  <RefreshCcw className="w-4 h-4 mr-2" />
+                  Extend
+                </Button>
+              </div>
+            )}
 
             <Button
               onClick={() => setIsAssignModalOpen(true)}
